@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { addSound, deleteSound, listSounds, type SoundEntry } from './db';
-import { shortLicense } from './freesound';
+import { shortLicense as freesoundLicense } from './freesound';
+import { shortLicense as openverseLicense } from './openverse';
 import SettingsPage from './teacher/SettingsPage';
 import Wizard, { EMPTY_DRAFT, type Draft, type Step } from './teacher/Wizard';
 
@@ -118,7 +119,6 @@ export default function TeacherMode() {
               onStep={setStep}
               onDraft={setDraft}
               onSave={save}
-              onOpenSettings={() => setView('settings')}
             />
             {error && <p className="error">Save failed: {error}</p>}
           </div>
@@ -180,9 +180,12 @@ function LibraryRow({ entry, onDelete }: { entry: SoundEntry; onDelete: () => vo
           <div className="muted small">
             🔊 {entry.source.author} •{' '}
             <a href={entry.source.url} target="_blank" rel="noopener noreferrer">
-              Freesound
+              {entry.source.provider === 'freesound' ? 'Freesound' : 'Openverse'}
             </a>{' '}
-            • {shortLicense(entry.source.license)}
+            •{' '}
+            {entry.source.provider === 'freesound'
+              ? freesoundLicense(entry.source.license)
+              : openverseLicense(entry.source.license)}
           </div>
         )}
         {entry.imageSource && (
@@ -193,8 +196,11 @@ function LibraryRow({ entry, onDelete }: { entry: SoundEntry; onDelete: () => vo
               target="_blank"
               rel="noopener noreferrer"
             >
-              Pixabay
+              {entry.imageSource.provider === 'pixabay' ? 'Pixabay' : 'Openverse'}
             </a>
+            {entry.imageSource.provider === 'openverse' && (
+              <> • {openverseLicense(entry.imageSource.license)}</>
+            )}
           </div>
         )}
       </div>

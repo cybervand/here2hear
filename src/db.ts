@@ -17,20 +17,36 @@ export type SoundEntry = {
   startSec?: number;
   endSec?: number;
   /** Optional attribution if the audio came from a third party. */
-  source?: {
-    provider: 'freesound';
-    soundId: number;
-    author: string;
-    license: string;
-    url: string;
-  };
+  source?:
+    | {
+        provider: 'freesound';
+        soundId: number;
+        author: string;
+        license: string;
+        url: string;
+      }
+    | {
+        provider: 'openverse';
+        soundId: string;
+        author: string;
+        license: string;
+        url: string;
+      };
   /** Optional attribution if the picture came from a third party. */
-  imageSource?: {
-    provider: 'pixabay';
-    imageId: number;
-    author: string;
-    url: string;
-  };
+  imageSource?:
+    | {
+        provider: 'pixabay';
+        imageId: number;
+        author: string;
+        url: string;
+      }
+    | {
+        provider: 'openverse';
+        imageId: string;
+        author: string;
+        license: string;
+        url: string;
+      };
 };
 
 /**

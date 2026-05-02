@@ -20,8 +20,8 @@ There are two tabs at the top of the screen.
 Add at least 4 sounds. For each one, the wizard asks you for:
 
 - a **name** ("lion", "whisper", "thunder")
-- a **picture** — drag it in from your desktop, or search Pixabay (see below)
-- a **sound** — drag it in, or search Freesound (see below)
+- a **picture** — drag it in from your desktop, or search Openverse / Pixabay
+- a **sound** — drag it in, or search Openverse / Freesound
 - a **trim** if you only want part of a long clip to play
 - a **loudness** — slide from soft to loud
 
@@ -35,27 +35,31 @@ Four pictures appear at the bottom of the screen. The kid:
 
 When both are right, they get a star and the next round starts.
 
-## Free libraries (optional but recommended)
+## Built-in search
 
-Both setups are similar: sign up, copy a key, paste it into **Teacher → Settings**.
+You can search for pictures and sounds without leaving the app.
 
-### Freesound — for sounds
+### Openverse — works out of the box
 
-A free library of thousands of sound effects.
+[Openverse](https://openverse.org) is a free CC-licensed media library that aggregates Wikimedia, Flickr, Smithsonian, Freesound and others. **No signup or key needed** — just type a query in the picture or sound step and tap Search.
+
+This is the default. You don't have to do anything to use it.
+
+### Optional upgrades
+
+If Openverse doesn't have what you want, you can add a free key for one of these to get a second search option in the same step:
+
+**Pixabay** — for pictures. Photos and friendly illustrations.
+
+1. Sign up at <https://pixabay.com/accounts/register/>
+2. Once logged in, your API key shows on <https://pixabay.com/api/docs/> (auto-generated)
+3. In the app: **Teacher → Settings**, paste the key into the Pixabay card, click **Save**
+
+**Freesound** — for sounds. Larger curated library of sound effects.
 
 1. Sign up at <https://freesound.org>
 2. Get a key at <https://freesound.org/apiv2/apply> (you can fill the form with anything)
 3. In the app: **Teacher → Settings**, paste the **Secret Key**, click **Save**
-4. The audio step now has a "Search Freesound" option
-
-### Pixabay — for pictures
-
-A free library of photos and illustrations. Illustrations are often friendlier than photos for kindergarten use.
-
-1. Sign up at <https://pixabay.com/accounts/register/>
-2. Once you're logged in, your API key is shown on <https://pixabay.com/api/docs/> (it's auto-generated)
-3. In the app: **Teacher → Settings**, paste the **API Key**, click **Save**
-4. The picture step now has a "Search Pixabay" option
 
 ## Where the sounds are saved
 

@@ -14,6 +14,15 @@ import {
   searchPixabay,
   type PixabayResult,
 } from '../pixabay';
+import {
+  fetchBlob as fetchOpenverseBlob,
+  formatDurationMs as formatOpenverseDuration,
+  searchAudio as searchOpenverseAudio,
+  searchImages as searchOpenverseImages,
+  shortLicense as openverseLicense,
+  type OpenverseAudio,
+  type OpenverseImage,
+} from '../openverse';
 
 export type Step = 'name' | 'image' | 'audio' | 'trim' | 'loudness';
 
@@ -48,7 +57,6 @@ type WizardProps = {
   onStep: (s: Step) => void;
   onDraft: (d: Draft) => void;
   onSave: () => void;
-  onOpenSettings: () => void;
 };
 
 export default function Wizard({
@@ -58,7 +66,6 @@ export default function Wizard({
   onStep,
   onDraft,
   onSave,
-  onOpenSettings,
 }: WizardProps) {
   return (
     <>
@@ -80,7 +87,6 @@ export default function Wizard({
           }
           onBack={() => onStep('name')}
           onNext={() => draft.image && onStep('audio')}
-          onOpenSettings={onOpenSettings}
         />
       )}
       {step === 'audio' && (
@@ -102,7 +108,6 @@ export default function Wizard({
           }
           onBack={() => onStep('image')}
           onNext={() => draft.audio && onStep('trim')}
-          onOpenSettings={onOpenSettings}
         />
       )}
       {step === 'trim' && draft.audio && (
@@ -187,9 +192,9 @@ function NameStep({
   );
 }
 
-/* ────────── Image step (drop OR Pixabay search) ────────── */
+/* ────────── Image step (drop OR Openverse / Pixabay search) ────────── */
 
-type ImagePickerSource = 'drop' | 'pixabay';
+type ImagePickerSource = 'drop' | 'openverse' | 'pixabay';
 
 function ImageStep({
   file,
@@ -198,7 +203,6 @@ function ImageStep({
   onImage,
   onBack,
   onNext,
-  onOpenSettings,
 }: {
   file: Blob | null;
   imageSource?: SoundEntry['imageSource'];
@@ -206,10 +210,12 @@ function ImageStep({
   onImage: (file: Blob | null, source?: SoundEntry['imageSource']) => void;
   onBack: () => void;
   onNext: () => void;
-  onOpenSettings: () => void;
 }) {
-  const apiKey = getPixabayKey();
-  const [tab, setTab] = useState<ImagePickerSource>(apiKey ? 'pixabay' : 'drop');
+  const pixabayKey = getPixabayKey();
+  // Default to the configured key-based provider if any, otherwise Openverse.
+  const [tab, setTab] = useState<ImagePickerSource>(
+    pixabayKey ? 'pixabay' : 'openverse',
+  );
 
   return (
     <div className="step-body">
@@ -224,24 +230,43 @@ function ImageStep({
         </button>
         <button
           type="button"
-          className={`seg-tab${tab === 'pixabay' ? ' active' : ''}`}
-          onClick={() => (apiKey ? setTab('pixabay') : onOpenSettings())}
-          title={apiKey ? '' : 'Add your Pixabay key in Settings'}
+          className={`seg-tab${tab === 'openverse' ? ' active' : ''}`}
+          onClick={() => setTab('openverse')}
         >
-          Search Pixabay{apiKey ? '' : ' →'}
+          Openverse
         </button>
+        {pixabayKey && (
+          <button
+            type="button"
+            className={`seg-tab${tab === 'pixabay' ? ' active' : ''}`}
+            onClick={() => setTab('pixabay')}
+          >
+            Pixabay
+          </button>
+        )}
       </div>
 
-      {/* Both panes stay mounted so toggling tabs doesn't lose search state. */}
+      {/* All panes stay mounted so toggling tabs doesn't lose search state. */}
       <div className={tab === 'drop' ? '' : 'hidden'}>
         <DropImage file={file} onFile={(f) => onImage(f, undefined)} />
       </div>
-      {apiKey && (
+      <div className={tab === 'openverse' ? '' : 'hidden'}>
+        <OpenverseImageSearch
+          query={name}
+          selected={
+            imageSource?.provider === 'openverse' ? imageSource.imageId : null
+          }
+          onPick={(blob, src) => onImage(blob, src)}
+        />
+      </div>
+      {pixabayKey && (
         <div className={tab === 'pixabay' ? '' : 'hidden'}>
           <PixabaySearch
             query={name}
-            apiKey={apiKey}
-            selected={imageSource?.provider === 'pixabay' ? imageSource.imageId : null}
+            apiKey={pixabayKey}
+            selected={
+              imageSource?.provider === 'pixabay' ? imageSource.imageId : null
+            }
             onPick={(blob, src) => onImage(blob, src)}
           />
         </div>
@@ -320,6 +345,250 @@ function DropImage({
         </button>
       )}
     </>
+  );
+}
+
+function OpenverseImageSearch({
+  query: initialQuery,
+  selected,
+  onPick,
+}: {
+  query: string;
+  selected: string | null;
+  onPick: (blob: Blob, source: NonNullable<SoundEntry['imageSource']>) => void;
+}) {
+  const [query, setQuery] = useState(initialQuery);
+  const [results, setResults] = useState<OpenverseImage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [picking, setPicking] = useState<string | null>(null);
+
+  const search = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await searchOpenverseImages(query.trim());
+      setResults(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialQuery.trim() && results.length === 0) search();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pickResult = async (r: OpenverseImage) => {
+    setPicking(r.id);
+    setError(null);
+    try {
+      const blob = await fetchOpenverseBlob(r.thumbnail || r.url);
+      onPick(blob, {
+        provider: 'openverse',
+        imageId: r.id,
+        author: r.creator || 'Unknown',
+        license: r.license,
+        url: r.foreign_landing_url || r.url,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPicking(null);
+    }
+  };
+
+  return (
+    <div className="pixabay-search">
+      <div className="row">
+        <input
+          className="text-input"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && search()}
+          placeholder="Search Openverse (e.g. lion)"
+        />
+        <button type="button" className="btn" onClick={search} disabled={loading}>
+          {loading ? 'Searching…' : 'Search'}
+        </button>
+      </div>
+      {error && <p className="error small">{error}</p>}
+      <div className="px-grid">
+        {results.map((r) => {
+          const isSelected = selected === r.id;
+          const isPicking = picking === r.id;
+          return (
+            <button
+              type="button"
+              key={r.id}
+              className={`px-tile${isSelected ? ' selected' : ''}`}
+              onClick={() => pickResult(r)}
+              disabled={isPicking}
+              aria-label={`Use ${r.title} by ${r.creator}`}
+              title={`${r.title}\nby ${r.creator || 'Unknown'} • ${openverseLicense(r.license)}`}
+            >
+              <img src={r.thumbnail} alt={r.title} loading="lazy" />
+              <div className="px-tile-author muted small">
+                {r.creator || 'Unknown'}
+              </div>
+              {isPicking && <div className="px-tile-badge">…</div>}
+              {isSelected && !isPicking && <div className="px-tile-badge">✓</div>}
+            </button>
+          );
+        })}
+        {!loading && results.length === 0 && !error && (
+          <div className="muted small">Type a query and tap Search.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OpenverseAudioSearch({
+  query: initialQuery,
+  selected,
+  onPick,
+}: {
+  query: string;
+  selected: string | null;
+  onPick: (
+    blob: Blob,
+    source: NonNullable<SoundEntry['source']>,
+    displayName: string,
+  ) => void;
+}) {
+  const [query, setQuery] = useState(initialQuery);
+  const [results, setResults] = useState<OpenverseAudio[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [picking, setPicking] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+    };
+  }, []);
+
+  const search = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await searchOpenverseAudio(query.trim());
+      setResults(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialQuery.trim() && results.length === 0) search();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const playPreview = (r: OpenverseAudio) => {
+    if (audioRef.current) audioRef.current.pause();
+    if (playingId === r.id) {
+      setPlayingId(null);
+      return;
+    }
+    const a = new Audio(r.url);
+    audioRef.current = a;
+    a.play().catch(() => {});
+    a.addEventListener('ended', () => setPlayingId(null), { once: true });
+    setPlayingId(r.id);
+  };
+
+  const pickResult = async (r: OpenverseAudio) => {
+    setPicking(r.id);
+    setError(null);
+    try {
+      const blob = await fetchOpenverseBlob(r.url);
+      onPick(
+        blob,
+        {
+          provider: 'openverse',
+          soundId: r.id,
+          author: r.creator || 'Unknown',
+          license: r.license,
+          url: r.foreign_landing_url || r.url,
+        },
+        r.title,
+      );
+    } catch (e) {
+      // Some Openverse audio sources don't allow direct browser download (CORS).
+      // Surface a helpful hint.
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`${msg} — try another result.`);
+    } finally {
+      setPicking(null);
+    }
+  };
+
+  return (
+    <div className="freesound-search">
+      <div className="row">
+        <input
+          className="text-input"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && search()}
+          placeholder="Search Openverse (e.g. thunder)"
+        />
+        <button type="button" className="btn" onClick={search} disabled={loading}>
+          {loading ? 'Searching…' : 'Search'}
+        </button>
+      </div>
+      {error && <p className="error small">{error}</p>}
+      <ul className="fs-results">
+        {results.map((r) => {
+          const isSelected = selected === r.id;
+          const isPlaying = playingId === r.id;
+          const isPicking = picking === r.id;
+          return (
+            <li
+              key={r.id}
+              className={`fs-row${isSelected ? ' selected' : ''}`}
+            >
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => playPreview(r)}
+                aria-label={isPlaying ? 'Stop' : 'Play'}
+              >
+                {isPlaying ? '■' : '▶'}
+              </button>
+              <div className="fs-meta">
+                <div className="fs-title">{r.title}</div>
+                <div className="muted small">
+                  {r.creator || 'Unknown'} •{' '}
+                  {r.duration ? formatOpenverseDuration(r.duration) : '—'} •{' '}
+                  {openverseLicense(r.license)}
+                </div>
+              </div>
+              <button
+                type="button"
+                className={isSelected ? 'btn-secondary' : 'btn'}
+                onClick={() => pickResult(r)}
+                disabled={isPicking}
+              >
+                {isPicking ? '…' : isSelected ? '✓ Picked' : 'Use this'}
+              </button>
+            </li>
+          );
+        })}
+        {!loading && results.length === 0 && !error && (
+          <li className="muted small">Type a query and tap Search.</li>
+        )}
+      </ul>
+    </div>
   );
 }
 
@@ -424,7 +693,7 @@ function PixabaySearch({
 
 /* ────────── Audio step ────────── */
 
-type AudioSource = 'drop' | 'freesound';
+type AudioPickerSource = 'drop' | 'openverse' | 'freesound';
 
 function AudioStep({
   audio,
@@ -434,7 +703,6 @@ function AudioStep({
   onAudio,
   onBack,
   onNext,
-  onOpenSettings,
 }: {
   audio: Blob | null;
   audioName: string;
@@ -447,10 +715,11 @@ function AudioStep({
   ) => void;
   onBack: () => void;
   onNext: () => void;
-  onOpenSettings: () => void;
 }) {
-  const apiKey = getApiKey();
-  const [tab, setTab] = useState<AudioSource>(apiKey ? 'freesound' : 'drop');
+  const freesoundKey = getApiKey();
+  const [tab, setTab] = useState<AudioPickerSource>(
+    freesoundKey ? 'freesound' : 'openverse',
+  );
 
   return (
     <div className="step-body">
@@ -465,15 +734,23 @@ function AudioStep({
         </button>
         <button
           type="button"
-          className={`seg-tab${tab === 'freesound' ? ' active' : ''}`}
-          onClick={() => (apiKey ? setTab('freesound') : onOpenSettings())}
-          title={apiKey ? '' : 'Add your Freesound key in Settings'}
+          className={`seg-tab${tab === 'openverse' ? ' active' : ''}`}
+          onClick={() => setTab('openverse')}
         >
-          Search Freesound{apiKey ? '' : ' →'}
+          Openverse
         </button>
+        {freesoundKey && (
+          <button
+            type="button"
+            className={`seg-tab${tab === 'freesound' ? ' active' : ''}`}
+            onClick={() => setTab('freesound')}
+          >
+            Freesound
+          </button>
+        )}
       </div>
 
-      {/* Both panes stay mounted so toggling tabs doesn't lose search state. */}
+      {/* All panes stay mounted so toggling tabs doesn't lose search state. */}
       <div className={tab === 'drop' ? '' : 'hidden'}>
         <DropAudio
           audio={audio}
@@ -481,11 +758,18 @@ function AudioStep({
           onAudio={(blob, fname) => onAudio(blob, fname, undefined)}
         />
       </div>
-      {apiKey && (
+      <div className={tab === 'openverse' ? '' : 'hidden'}>
+        <OpenverseAudioSearch
+          query={name}
+          selected={source?.provider === 'openverse' ? source.soundId : null}
+          onPick={(blob, src, displayName) => onAudio(blob, displayName, src)}
+        />
+      </div>
+      {freesoundKey && (
         <div className={tab === 'freesound' ? '' : 'hidden'}>
           <FreesoundSearch
             query={name}
-            apiKey={apiKey}
+            apiKey={freesoundKey}
             selected={source?.provider === 'freesound' ? source.soundId : null}
             onPick={(blob, src, displayName) => onAudio(blob, displayName, src)}
           />
