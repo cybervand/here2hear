@@ -9,3 +9,7 @@ tsconfig.tsbuildinfo
 .env
 .env.*
 !.env.example
+
+# Personal Claude Code config / context — not for the public repo
+.claude/
+CLAUDE.md
