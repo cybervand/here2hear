@@ -20,8 +20,8 @@ There are two tabs at the top of the screen.
 Add at least 4 sounds. For each one, the wizard asks you for:
 
 - a **name** ("lion", "whisper", "thunder")
-- a **picture** — drag it in from your desktop, or search Openverse / Pixabay
-- a **sound** — drag it in, or search Openverse / Freesound
+- a **picture** — drag it in from your desktop, or **Search**
+- a **sound** — drag it in, or **Search**
 - a **trim** if you only want part of a long clip to play
 - a **loudness** — slide from soft to loud
 
@@ -37,25 +37,19 @@ When both are right, they get a star and the next round starts.
 
 ## Built-in search
 
-You can search for pictures and sounds without leaving the app.
+The picture and sound steps both have a **Search** tab. Type what you're looking for, tap a result, done. Out of the box this searches [Openverse](https://openverse.org) — a free CC-licensed media library that aggregates Wikimedia, Flickr, Smithsonian, Freesound, Jamendo and others. **No signup, no key.**
 
-### Openverse — works out of the box
+### Optional: add more results
 
-[Openverse](https://openverse.org) is a free CC-licensed media library that aggregates Wikimedia, Flickr, Smithsonian, Freesound and others. **No signup or key needed** — just type a query in the picture or sound step and tap Search.
+If Openverse alone isn't enough, you can plug in free API keys for Pixabay (more curated pictures) and Freesound (larger sound-effect library). Each one *adds* its results to the same Search; there's no extra tab to learn.
 
-This is the default. You don't have to do anything to use it.
-
-### Optional upgrades
-
-If Openverse doesn't have what you want, you can add a free key for one of these to get a second search option in the same step:
-
-**Pixabay** — for pictures. Photos and friendly illustrations.
+**Pixabay** — for pictures.
 
 1. Sign up at <https://pixabay.com/accounts/register/>
 2. Once logged in, your API key shows on <https://pixabay.com/api/docs/> (auto-generated)
 3. In the app: **Teacher → Settings**, paste the key into the Pixabay card, click **Save**
 
-**Freesound** — for sounds. Larger curated library of sound effects.
+**Freesound** — for sounds.
 
 1. Sign up at <https://freesound.org>
 2. Get a key at <https://freesound.org/apiv2/apply> (you can fill the form with anything)

@@ -1,27 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type SoundEntry } from '../db';
 import {
-  fetchPreviewBlob,
-  formatDuration,
-  getApiKey,
+  getApiKey as getFreesoundKey,
   searchFreesound,
-  shortLicense,
+  shortLicense as freesoundLicense,
   type FreesoundResult,
 } from '../freesound';
 import {
-  fetchImageBlob,
   getApiKey as getPixabayKey,
   searchPixabay,
   type PixabayResult,
 } from '../pixabay';
 import {
-  fetchBlob as fetchOpenverseBlob,
-  formatDurationMs as formatOpenverseDuration,
   searchAudio as searchOpenverseAudio,
   searchImages as searchOpenverseImages,
   shortLicense as openverseLicense,
   type OpenverseAudio,
-  type OpenverseImage,
 } from '../openverse';
 
 export type Step = 'name' | 'image' | 'audio' | 'trim' | 'loudness';
@@ -192,9 +186,9 @@ function NameStep({
   );
 }
 
-/* ────────── Image step (drop OR Openverse / Pixabay search) ────────── */
+/* ────────── Image step ────────── */
 
-type ImagePickerSource = 'drop' | 'openverse' | 'pixabay';
+type ImagePickerSource = 'drop' | 'search';
 
 function ImageStep({
   file,
@@ -211,11 +205,7 @@ function ImageStep({
   onBack: () => void;
   onNext: () => void;
 }) {
-  const pixabayKey = getPixabayKey();
-  // Default to the configured key-based provider if any, otherwise Openverse.
-  const [tab, setTab] = useState<ImagePickerSource>(
-    pixabayKey ? 'pixabay' : 'openverse',
-  );
+  const [tab, setTab] = useState<ImagePickerSource>('search');
 
   return (
     <div className="step-body">
@@ -230,47 +220,26 @@ function ImageStep({
         </button>
         <button
           type="button"
-          className={`seg-tab${tab === 'openverse' ? ' active' : ''}`}
-          onClick={() => setTab('openverse')}
+          className={`seg-tab${tab === 'search' ? ' active' : ''}`}
+          onClick={() => setTab('search')}
         >
-          Openverse
+          Search
         </button>
-        {pixabayKey && (
-          <button
-            type="button"
-            className={`seg-tab${tab === 'pixabay' ? ' active' : ''}`}
-            onClick={() => setTab('pixabay')}
-          >
-            Pixabay
-          </button>
-        )}
       </div>
 
-      {/* All panes stay mounted so toggling tabs doesn't lose search state. */}
+      {/* Both panes stay mounted so toggling tabs doesn't lose search state. */}
       <div className={tab === 'drop' ? '' : 'hidden'}>
         <DropImage file={file} onFile={(f) => onImage(f, undefined)} />
       </div>
-      <div className={tab === 'openverse' ? '' : 'hidden'}>
-        <OpenverseImageSearch
-          query={name}
-          selected={
-            imageSource?.provider === 'openverse' ? imageSource.imageId : null
+      <div className={tab === 'search' ? '' : 'hidden'}>
+        <ImageSearch
+          initialQuery={name}
+          selectedKey={
+            imageSource ? `${imageSource.provider}-${imageSource.imageId}` : null
           }
           onPick={(blob, src) => onImage(blob, src)}
         />
       </div>
-      {pixabayKey && (
-        <div className={tab === 'pixabay' ? '' : 'hidden'}>
-          <PixabaySearch
-            query={name}
-            apiKey={pixabayKey}
-            selected={
-              imageSource?.provider === 'pixabay' ? imageSource.imageId : null
-            }
-            onPick={(blob, src) => onImage(blob, src)}
-          />
-        </div>
-      )}
 
       <div className="row split">
         <button type="button" className="btn-secondary" onClick={onBack}>
@@ -348,301 +317,128 @@ function DropImage({
   );
 }
 
-function OpenverseImageSearch({
-  query: initialQuery,
-  selected,
-  onPick,
-}: {
-  query: string;
-  selected: string | null;
-  onPick: (blob: Blob, source: NonNullable<SoundEntry['imageSource']>) => void;
-}) {
-  const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState<OpenverseImage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [picking, setPicking] = useState<string | null>(null);
+/* ────────── Unified picture search (Openverse + Pixabay) ────────── */
 
-  const search = async () => {
-    if (!query.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await searchOpenverseImages(query.trim());
-      setResults(r);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  };
+type ImageHit = {
+  key: string;
+  thumbnailUrl: string;
+  largeUrl: string;
+  title: string;
+  author: string;
+  attribution: NonNullable<SoundEntry['imageSource']>;
+};
 
-  useEffect(() => {
-    if (initialQuery.trim() && results.length === 0) search();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+async function runImageSearch(
+  query: string,
+): Promise<{ hits: ImageHit[]; errors: string[] }> {
+  const pixabayKey = getPixabayKey();
+  const tasks: Array<{ label: string; promise: Promise<ImageHit[]> }> = [];
 
-  const pickResult = async (r: OpenverseImage) => {
-    setPicking(r.id);
-    setError(null);
-    try {
-      const blob = await fetchOpenverseBlob(r.thumbnail || r.url);
-      onPick(blob, {
-        provider: 'openverse',
-        imageId: r.id,
-        author: r.creator || 'Unknown',
-        license: r.license,
-        url: r.foreign_landing_url || r.url,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setPicking(null);
-    }
-  };
-
-  return (
-    <div className="pixabay-search">
-      <div className="row">
-        <input
-          className="text-input"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && search()}
-          placeholder="Search Openverse (e.g. lion)"
-        />
-        <button type="button" className="btn" onClick={search} disabled={loading}>
-          {loading ? 'Searching…' : 'Search'}
-        </button>
-      </div>
-      {error && <p className="error small">{error}</p>}
-      <div className="px-grid">
-        {results.map((r) => {
-          const isSelected = selected === r.id;
-          const isPicking = picking === r.id;
-          return (
-            <button
-              type="button"
-              key={r.id}
-              className={`px-tile${isSelected ? ' selected' : ''}`}
-              onClick={() => pickResult(r)}
-              disabled={isPicking}
-              aria-label={`Use ${r.title} by ${r.creator}`}
-              title={`${r.title}\nby ${r.creator || 'Unknown'} • ${openverseLicense(r.license)}`}
-            >
-              <img src={r.thumbnail} alt={r.title} loading="lazy" />
-              <div className="px-tile-author muted small">
-                {r.creator || 'Unknown'}
-              </div>
-              {isPicking && <div className="px-tile-badge">…</div>}
-              {isSelected && !isPicking && <div className="px-tile-badge">✓</div>}
-            </button>
-          );
-        })}
-        {!loading && results.length === 0 && !error && (
-          <div className="muted small">Type a query and tap Search.</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function OpenverseAudioSearch({
-  query: initialQuery,
-  selected,
-  onPick,
-}: {
-  query: string;
-  selected: string | null;
-  onPick: (
-    blob: Blob,
-    source: NonNullable<SoundEntry['source']>,
-    displayName: string,
-  ) => void;
-}) {
-  const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState<OpenverseAudio[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [picking, setPicking] = useState<string | null>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause();
-    };
-  }, []);
-
-  const search = async () => {
-    if (!query.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await searchOpenverseAudio(query.trim());
-      setResults(r);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (initialQuery.trim() && results.length === 0) search();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const playPreview = (r: OpenverseAudio) => {
-    if (audioRef.current) audioRef.current.pause();
-    if (playingId === r.id) {
-      setPlayingId(null);
-      return;
-    }
-    const a = new Audio(r.url);
-    audioRef.current = a;
-    a.play().catch(() => {});
-    a.addEventListener('ended', () => setPlayingId(null), { once: true });
-    setPlayingId(r.id);
-  };
-
-  const pickResult = async (r: OpenverseAudio) => {
-    setPicking(r.id);
-    setError(null);
-    try {
-      const blob = await fetchOpenverseBlob(r.url);
-      onPick(
-        blob,
-        {
-          provider: 'openverse',
-          soundId: r.id,
+  tasks.push({
+    label: 'Openverse',
+    promise: searchOpenverseImages(query).then((rs) =>
+      rs.map(
+        (r): ImageHit => ({
+          key: `openverse-${r.id}`,
+          thumbnailUrl: r.thumbnail,
+          largeUrl: r.thumbnail,
+          title: r.title,
           author: r.creator || 'Unknown',
-          license: r.license,
-          url: r.foreign_landing_url || r.url,
-        },
-        r.title,
-      );
-    } catch (e) {
-      // Some Openverse audio sources don't allow direct browser download (CORS).
-      // Surface a helpful hint.
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(`${msg} — try another result.`);
-    } finally {
-      setPicking(null);
-    }
-  };
+          attribution: {
+            provider: 'openverse',
+            imageId: r.id,
+            author: r.creator || 'Unknown',
+            license: r.license,
+            url: r.foreign_landing_url || r.url,
+          },
+        }),
+      ),
+    ),
+  });
 
-  return (
-    <div className="freesound-search">
-      <div className="row">
-        <input
-          className="text-input"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && search()}
-          placeholder="Search Openverse (e.g. thunder)"
-        />
-        <button type="button" className="btn" onClick={search} disabled={loading}>
-          {loading ? 'Searching…' : 'Search'}
-        </button>
-      </div>
-      {error && <p className="error small">{error}</p>}
-      <ul className="fs-results">
-        {results.map((r) => {
-          const isSelected = selected === r.id;
-          const isPlaying = playingId === r.id;
-          const isPicking = picking === r.id;
-          return (
-            <li
-              key={r.id}
-              className={`fs-row${isSelected ? ' selected' : ''}`}
-            >
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={() => playPreview(r)}
-                aria-label={isPlaying ? 'Stop' : 'Play'}
-              >
-                {isPlaying ? '■' : '▶'}
-              </button>
-              <div className="fs-meta">
-                <div className="fs-title">{r.title}</div>
-                <div className="muted small">
-                  {r.creator || 'Unknown'} •{' '}
-                  {r.duration ? formatOpenverseDuration(r.duration) : '—'} •{' '}
-                  {openverseLicense(r.license)}
-                </div>
-              </div>
-              <button
-                type="button"
-                className={isSelected ? 'btn-secondary' : 'btn'}
-                onClick={() => pickResult(r)}
-                disabled={isPicking}
-              >
-                {isPicking ? '…' : isSelected ? '✓ Picked' : 'Use this'}
-              </button>
-            </li>
-          );
-        })}
-        {!loading && results.length === 0 && !error && (
-          <li className="muted small">Type a query and tap Search.</li>
-        )}
-      </ul>
-    </div>
-  );
+  if (pixabayKey) {
+    tasks.push({
+      label: 'Pixabay',
+      promise: searchPixabay(query, pixabayKey).then((rs) =>
+        rs.map(
+          (r: PixabayResult): ImageHit => ({
+            key: `pixabay-${r.id}`,
+            thumbnailUrl: r.previewURL,
+            largeUrl: r.webformatURL,
+            title: r.tags,
+            author: r.user,
+            attribution: {
+              provider: 'pixabay',
+              imageId: r.id,
+              author: r.user,
+              url: r.pageURL,
+            },
+          }),
+        ),
+      ),
+    });
+  }
+
+  const settled = await Promise.allSettled(tasks.map((t) => t.promise));
+  const hits: ImageHit[] = [];
+  const errors: string[] = [];
+  settled.forEach((s, i) => {
+    const label = tasks[i].label;
+    if (s.status === 'fulfilled') hits.push(...s.value);
+    else
+      errors.push(
+        `${label}: ${s.reason instanceof Error ? s.reason.message : String(s.reason)}`,
+      );
+  });
+  // Pixabay first (curated quality), then Openverse to fill in the rest.
+  hits.sort((a, b) => {
+    const aPx = a.key.startsWith('pixabay-') ? 0 : 1;
+    const bPx = b.key.startsWith('pixabay-') ? 0 : 1;
+    return aPx - bPx;
+  });
+  return { hits, errors };
 }
 
-function PixabaySearch({
-  query: initialQuery,
-  apiKey,
-  selected,
+function ImageSearch({
+  initialQuery,
+  selectedKey,
   onPick,
 }: {
-  query: string;
-  apiKey: string;
-  selected: number | null;
+  initialQuery: string;
+  selectedKey: string | null;
   onPick: (blob: Blob, source: NonNullable<SoundEntry['imageSource']>) => void;
 }) {
   const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState<PixabayResult[]>([]);
+  const [results, setResults] = useState<ImageHit[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [picking, setPicking] = useState<number | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [picking, setPicking] = useState<string | null>(null);
 
   const search = async () => {
     if (!query.trim()) return;
     setLoading(true);
-    setError(null);
-    try {
-      const r = await searchPixabay(query.trim(), apiKey);
-      setResults(r);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
+    setErrors([]);
+    const { hits, errors: errs } = await runImageSearch(query.trim());
+    setResults(hits);
+    setErrors(errs);
+    setLoading(false);
   };
 
   useEffect(() => {
-    if (initialQuery.trim() && results.length === 0) {
-      search();
-    }
+    if (initialQuery.trim() && results.length === 0) search();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pickResult = async (r: PixabayResult) => {
-    setPicking(r.id);
-    setError(null);
+  const pickResult = async (hit: ImageHit) => {
+    setPicking(hit.key);
+    setErrors([]);
     try {
-      const blob = await fetchImageBlob(r.webformatURL);
-      onPick(blob, {
-        provider: 'pixabay',
-        imageId: r.id,
-        author: r.user,
-        url: r.pageURL,
-      });
+      const res = await fetch(hit.largeUrl);
+      if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
+      const blob = await res.blob();
+      onPick(blob, hit.attribution);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setErrors([e instanceof Error ? e.message : String(e)]);
     } finally {
       setPicking(null);
     }
@@ -656,34 +452,39 @@ function PixabaySearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
-          placeholder="Search Pixabay (e.g. lion)"
+          placeholder="Search pictures (e.g. lion)"
         />
         <button type="button" className="btn" onClick={search} disabled={loading}>
           {loading ? 'Searching…' : 'Search'}
         </button>
       </div>
-      {error && <p className="error small">{error}</p>}
+      {errors.map((msg, i) => (
+        <p key={i} className="error small">
+          {msg}
+        </p>
+      ))}
       <div className="px-grid">
-        {results.map((r) => {
-          const isSelected = selected === r.id;
-          const isPicking = picking === r.id;
+        {results.map((hit) => {
+          const isSelected = selectedKey === hit.key;
+          const isPicking = picking === hit.key;
           return (
             <button
               type="button"
-              key={r.id}
+              key={hit.key}
               className={`px-tile${isSelected ? ' selected' : ''}`}
-              onClick={() => pickResult(r)}
+              onClick={() => pickResult(hit)}
               disabled={isPicking}
-              aria-label={`Use ${r.tags} by ${r.user}`}
+              aria-label={`Use ${hit.title} by ${hit.author}`}
+              title={hit.title}
             >
-              <img src={r.previewURL} alt={r.tags} />
-              <div className="px-tile-author muted small">by {r.user}</div>
+              <img src={hit.thumbnailUrl} alt={hit.title} loading="lazy" />
+              <div className="px-tile-author muted small">{hit.author}</div>
               {isPicking && <div className="px-tile-badge">…</div>}
               {isSelected && !isPicking && <div className="px-tile-badge">✓</div>}
             </button>
           );
         })}
-        {!loading && results.length === 0 && !error && (
+        {!loading && results.length === 0 && errors.length === 0 && (
           <div className="muted small">Type a query and tap Search.</div>
         )}
       </div>
@@ -693,7 +494,7 @@ function PixabaySearch({
 
 /* ────────── Audio step ────────── */
 
-type AudioPickerSource = 'drop' | 'openverse' | 'freesound';
+type AudioPickerSource = 'drop' | 'search';
 
 function AudioStep({
   audio,
@@ -716,10 +517,7 @@ function AudioStep({
   onBack: () => void;
   onNext: () => void;
 }) {
-  const freesoundKey = getApiKey();
-  const [tab, setTab] = useState<AudioPickerSource>(
-    freesoundKey ? 'freesound' : 'openverse',
-  );
+  const [tab, setTab] = useState<AudioPickerSource>('search');
 
   return (
     <div className="step-body">
@@ -734,23 +532,13 @@ function AudioStep({
         </button>
         <button
           type="button"
-          className={`seg-tab${tab === 'openverse' ? ' active' : ''}`}
-          onClick={() => setTab('openverse')}
+          className={`seg-tab${tab === 'search' ? ' active' : ''}`}
+          onClick={() => setTab('search')}
         >
-          Openverse
+          Search
         </button>
-        {freesoundKey && (
-          <button
-            type="button"
-            className={`seg-tab${tab === 'freesound' ? ' active' : ''}`}
-            onClick={() => setTab('freesound')}
-          >
-            Freesound
-          </button>
-        )}
       </div>
 
-      {/* All panes stay mounted so toggling tabs doesn't lose search state. */}
       <div className={tab === 'drop' ? '' : 'hidden'}>
         <DropAudio
           audio={audio}
@@ -758,23 +546,13 @@ function AudioStep({
           onAudio={(blob, fname) => onAudio(blob, fname, undefined)}
         />
       </div>
-      <div className={tab === 'openverse' ? '' : 'hidden'}>
-        <OpenverseAudioSearch
-          query={name}
-          selected={source?.provider === 'openverse' ? source.soundId : null}
+      <div className={tab === 'search' ? '' : 'hidden'}>
+        <AudioSearch
+          initialQuery={name}
+          selectedKey={source ? `${source.provider}-${source.soundId}` : null}
           onPick={(blob, src, displayName) => onAudio(blob, displayName, src)}
         />
       </div>
-      {freesoundKey && (
-        <div className={tab === 'freesound' ? '' : 'hidden'}>
-          <FreesoundSearch
-            query={name}
-            apiKey={freesoundKey}
-            selected={source?.provider === 'freesound' ? source.soundId : null}
-            onPick={(blob, src, displayName) => onAudio(blob, displayName, src)}
-          />
-        </div>
-      )}
 
       <div className="row split">
         <button type="button" className="btn-secondary" onClick={onBack}>
@@ -868,15 +646,109 @@ function DropAudio({
   );
 }
 
-function FreesoundSearch({
-  query: initialQuery,
-  apiKey,
-  selected,
+/* ────────── Unified sound search (Openverse + Freesound) ────────── */
+
+type AudioHit = {
+  key: string;
+  previewUrl: string;
+  downloadUrl: string;
+  title: string;
+  author: string;
+  durationSec?: number;
+  licenseLabel: string;
+  attribution: NonNullable<SoundEntry['source']>;
+};
+
+async function runAudioSearch(
+  query: string,
+): Promise<{ hits: AudioHit[]; errors: string[] }> {
+  const freesoundKey = getFreesoundKey();
+  const tasks: Array<{ label: string; promise: Promise<AudioHit[]> }> = [];
+
+  tasks.push({
+    label: 'Openverse',
+    promise: searchOpenverseAudio(query).then((rs) =>
+      rs.map(
+        (r: OpenverseAudio): AudioHit => ({
+          key: `openverse-${r.id}`,
+          previewUrl: r.url,
+          downloadUrl: r.url,
+          title: r.title,
+          author: r.creator || 'Unknown',
+          durationSec: r.duration ? r.duration / 1000 : undefined,
+          licenseLabel: openverseLicense(r.license),
+          attribution: {
+            provider: 'openverse',
+            soundId: r.id,
+            author: r.creator || 'Unknown',
+            license: r.license,
+            url: r.foreign_landing_url || r.url,
+          },
+        }),
+      ),
+    ),
+  });
+
+  if (freesoundKey) {
+    tasks.push({
+      label: 'Freesound',
+      promise: searchFreesound(query, freesoundKey).then((rs) =>
+        rs.map(
+          (r: FreesoundResult): AudioHit => ({
+            key: `freesound-${r.id}`,
+            previewUrl: r.previews['preview-hq-mp3'],
+            downloadUrl: r.previews['preview-hq-mp3'],
+            title: r.name,
+            author: r.username,
+            durationSec: r.duration,
+            licenseLabel: freesoundLicense(r.license),
+            attribution: {
+              provider: 'freesound',
+              soundId: r.id,
+              author: r.username,
+              license: r.license,
+              url: r.url,
+            },
+          }),
+        ),
+      ),
+    });
+  }
+
+  const settled = await Promise.allSettled(tasks.map((t) => t.promise));
+  const hits: AudioHit[] = [];
+  const errors: string[] = [];
+  settled.forEach((s, i) => {
+    const label = tasks[i].label;
+    if (s.status === 'fulfilled') hits.push(...s.value);
+    else
+      errors.push(
+        `${label}: ${s.reason instanceof Error ? s.reason.message : String(s.reason)}`,
+      );
+  });
+  // Freesound first (curated), then Openverse to fill in.
+  hits.sort((a, b) => {
+    const aFs = a.key.startsWith('freesound-') ? 0 : 1;
+    const bFs = b.key.startsWith('freesound-') ? 0 : 1;
+    return aFs - bFs;
+  });
+  return { hits, errors };
+}
+
+function fmtDur(sec?: number): string {
+  if (!sec) return '—';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function AudioSearch({
+  initialQuery,
+  selectedKey,
   onPick,
 }: {
-  query: string;
-  apiKey: string;
-  selected: number | null;
+  initialQuery: string;
+  selectedKey: string | null;
   onPick: (
     blob: Blob,
     source: NonNullable<SoundEntry['source']>,
@@ -884,11 +756,11 @@ function FreesoundSearch({
   ) => void;
 }) {
   const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState<FreesoundResult[]>([]);
+  const [results, setResults] = useState<AudioHit[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [picking, setPicking] = useState<number | null>(null);
-  const [playingId, setPlayingId] = useState<number | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [picking, setPicking] = useState<string | null>(null);
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -900,58 +772,42 @@ function FreesoundSearch({
   const search = async () => {
     if (!query.trim()) return;
     setLoading(true);
-    setError(null);
-    try {
-      const r = await searchFreesound(query.trim(), apiKey);
-      setResults(r);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
+    setErrors([]);
+    const { hits, errors: errs } = await runAudioSearch(query.trim());
+    setResults(hits);
+    setErrors(errs);
+    setLoading(false);
   };
 
-  // Auto-search on first mount if there's an initial query
   useEffect(() => {
-    if (initialQuery.trim() && results.length === 0) {
-      search();
-    }
+    if (initialQuery.trim() && results.length === 0) search();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const playPreview = (r: FreesoundResult) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    if (playingId === r.id) {
-      setPlayingId(null);
+  const playPreview = (hit: AudioHit) => {
+    if (audioRef.current) audioRef.current.pause();
+    if (playingKey === hit.key) {
+      setPlayingKey(null);
       return;
     }
-    const a = new Audio(r.previews['preview-hq-mp3']);
+    const a = new Audio(hit.previewUrl);
     audioRef.current = a;
     a.play().catch(() => {});
-    a.addEventListener('ended', () => setPlayingId(null), { once: true });
-    setPlayingId(r.id);
+    a.addEventListener('ended', () => setPlayingKey(null), { once: true });
+    setPlayingKey(hit.key);
   };
 
-  const pickResult = async (r: FreesoundResult) => {
-    setPicking(r.id);
-    setError(null);
+  const pickResult = async (hit: AudioHit) => {
+    setPicking(hit.key);
+    setErrors([]);
     try {
-      const blob = await fetchPreviewBlob(r.previews['preview-hq-mp3']);
-      onPick(
-        blob,
-        {
-          provider: 'freesound',
-          soundId: r.id,
-          author: r.username,
-          license: r.license,
-          url: r.url,
-        },
-        r.name,
-      );
+      const res = await fetch(hit.downloadUrl);
+      if (!res.ok) throw new Error(`Failed to fetch audio: ${res.status}`);
+      const blob = await res.blob();
+      onPick(blob, hit.attribution, hit.title);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrors([`${msg} — try another result.`]);
     } finally {
       setPicking(null);
     }
@@ -965,41 +821,42 @@ function FreesoundSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
-          placeholder="Search Freesound (e.g. thunder)"
+          placeholder="Search sounds (e.g. thunder)"
         />
         <button type="button" className="btn" onClick={search} disabled={loading}>
           {loading ? 'Searching…' : 'Search'}
         </button>
       </div>
-      {error && <p className="error small">{error}</p>}
+      {errors.map((msg, i) => (
+        <p key={i} className="error small">
+          {msg}
+        </p>
+      ))}
       <ul className="fs-results">
-        {results.map((r) => {
-          const isSelected = selected === r.id;
-          const isPlaying = playingId === r.id;
-          const isPicking = picking === r.id;
+        {results.map((hit) => {
+          const isSelected = selectedKey === hit.key;
+          const isPlaying = playingKey === hit.key;
+          const isPicking = picking === hit.key;
           return (
-            <li
-              key={r.id}
-              className={`fs-row${isSelected ? ' selected' : ''}`}
-            >
+            <li key={hit.key} className={`fs-row${isSelected ? ' selected' : ''}`}>
               <button
                 type="button"
                 className="icon-btn"
-                onClick={() => playPreview(r)}
+                onClick={() => playPreview(hit)}
                 aria-label={isPlaying ? 'Stop' : 'Play'}
               >
                 {isPlaying ? '■' : '▶'}
               </button>
               <div className="fs-meta">
-                <div className="fs-title">{r.name}</div>
+                <div className="fs-title">{hit.title}</div>
                 <div className="muted small">
-                  {r.username} • {formatDuration(r.duration)} • {shortLicense(r.license)}
+                  {hit.author} • {fmtDur(hit.durationSec)} • {hit.licenseLabel}
                 </div>
               </div>
               <button
                 type="button"
                 className={isSelected ? 'btn-secondary' : 'btn'}
-                onClick={() => pickResult(r)}
+                onClick={() => pickResult(hit)}
                 disabled={isPicking}
               >
                 {isPicking ? '…' : isSelected ? '✓ Picked' : 'Use this'}
@@ -1007,7 +864,7 @@ function FreesoundSearch({
             </li>
           );
         })}
-        {!loading && results.length === 0 && !error && (
+        {!loading && results.length === 0 && errors.length === 0 && (
           <li className="muted small">Type a query and tap Search.</li>
         )}
       </ul>
