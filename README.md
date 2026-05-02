@@ -57,7 +57,7 @@ If Openverse alone isn't enough, you can plug in free API keys for Pixabay (more
 
 ## Languages
 
-The app starts in your browser's language if it's supported (currently English and Norwegian Bokmål); otherwise English. You can switch any time in **Teacher → Settings**, top card.
+The app starts in your browser's language if it's supported (currently English, Norwegian Bokmål, Tagalog, and Cebuano); otherwise English. You can switch any time in **Teacher → Settings**, top card.
 
 Translations live in [src/i18n/](src/i18n/) — one file per language. To add a new one, copy `no.ts`, translate the values (the keys must match `en.ts` exactly — TypeScript will tell you if anything's missing), then register it in `index.tsx`.
 

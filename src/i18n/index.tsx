@@ -6,20 +6,29 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import ceb from './ceb';
 import en, { type Translations } from './en';
 import no from './no';
+import tl from './tl';
 
-export type Locale = 'en' | 'no';
+export type Locale = 'en' | 'no' | 'tl' | 'ceb';
 
 const KEY_LOCALE = 'locale';
-const LOCALES: Locale[] = ['en', 'no'];
+const LOCALES: Locale[] = ['en', 'no', 'tl', 'ceb'];
 
 export const SUPPORTED_LOCALES: { code: Locale; label: string }[] = [
   { code: 'en', label: 'English' },
   { code: 'no', label: 'Norsk' },
+  { code: 'tl', label: 'Tagalog' },
+  { code: 'ceb', label: 'Bisaya' },
 ];
 
-const STRINGS: Record<Locale, Record<keyof Translations, string>> = { en, no };
+const STRINGS: Record<Locale, Record<keyof Translations, string>> = {
+  en,
+  no,
+  tl,
+  ceb,
+};
 
 export type TranslationKey = keyof Translations;
 
@@ -31,7 +40,10 @@ type TranslateFn = (
 function detectLocale(): Locale {
   const stored = (localStorage.getItem(KEY_LOCALE) ?? '') as Locale;
   if ((LOCALES as string[]).includes(stored)) return stored;
-  const browserLang = (navigator.language || 'en').slice(0, 2).toLowerCase();
+  // BCP 47: split on "-" so "en-US" → "en" and "ceb-PH" → "ceb".
+  let browserLang = (navigator.language || 'en').split('-')[0].toLowerCase();
+  // Filipino is the standardised form of Tagalog; treat them the same.
+  if (browserLang === 'fil') browserLang = 'tl';
   return (LOCALES as string[]).includes(browserLang) ? (browserLang as Locale) : 'en';
 }
 
