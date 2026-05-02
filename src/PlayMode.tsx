@@ -15,6 +15,7 @@ export default function PlayMode() {
   const [stars, setStars] = useState(0);
   const [round, setRound] = useState(0);
   const [wrongFlash, setWrongFlash] = useState<SlotKey | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
 
   useEffect(() => {
     listSounds().then((items) => {
@@ -53,6 +54,7 @@ export default function PlayMode() {
     cur.audio.pause();
     URL.revokeObjectURL(cur.url);
     currentRef.current = null;
+    setPlayingId(null);
   };
 
   useEffect(() => () => stopCurrent(), []);
@@ -68,6 +70,7 @@ export default function PlayMode() {
 
     const handle = { audio: a, url, timer: null as number | null };
     currentRef.current = handle;
+    setPlayingId(entry.id);
 
     a.addEventListener(
       'loadedmetadata',
@@ -166,6 +169,7 @@ export default function PlayMode() {
       stars={stars}
       round={round}
       wrongFlash={wrongFlash}
+      playingId={playingId}
       onTap={playEntry}
       onDrop={onDrop}
     />
@@ -179,6 +183,7 @@ type BoardProps = {
   stars: number;
   round: number;
   wrongFlash: SlotKey | null;
+  playingId: string | null;
   onTap: (e: SoundEntry) => void;
   onDrop: (e: SoundEntry, slot: SlotKey) => void;
 };
@@ -190,6 +195,7 @@ function Board({
   stars,
   round,
   wrongFlash,
+  playingId,
   onTap,
   onDrop,
 }: BoardProps) {
@@ -250,6 +256,7 @@ function Board({
             onDrop={onDrop}
             onDragChange={setDrag}
             isDraggingThis={drag?.id === entry.id}
+            isPlaying={playingId === entry.id}
           />
         ))}
       </div>
@@ -267,6 +274,7 @@ type CardProps = {
     d: { id: string; x: number; y: number; overSlot: SlotKey | null } | null,
   ) => void;
   isDraggingThis: boolean;
+  isPlaying: boolean;
 };
 
 function Card({
@@ -277,6 +285,7 @@ function Card({
   onDrop,
   onDragChange,
   isDraggingThis,
+  isPlaying,
 }: CardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
@@ -363,7 +372,7 @@ function Card({
   return (
     <div
       ref={ref}
-      className={`card${placed ? ' placed' : ''}${isDraggingThis ? ' dragging' : ''}`}
+      className={`card${placed ? ' placed' : ''}${isDraggingThis ? ' dragging' : ''}${isPlaying ? ' playing' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

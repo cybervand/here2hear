@@ -24,6 +24,13 @@ export type SoundEntry = {
     license: string;
     url: string;
   };
+  /** Optional attribution if the picture came from a third party. */
+  imageSource?: {
+    provider: 'pixabay';
+    imageId: number;
+    author: string;
+    url: string;
+  };
 };
 
 /**

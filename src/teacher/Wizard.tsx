@@ -8,18 +8,25 @@ import {
   shortLicense,
   type FreesoundResult,
 } from '../freesound';
+import {
+  fetchImageBlob,
+  getApiKey as getPixabayKey,
+  searchPixabay,
+  type PixabayResult,
+} from '../pixabay';
 
 export type Step = 'name' | 'image' | 'audio' | 'trim' | 'loudness';
 
 export type Draft = {
   name: string;
-  image: File | null;
+  image: Blob | null;
   audio: Blob | null;
   audioName: string;
   startSec: number;
   endSec: number;
   duration: number;
   source?: SoundEntry['source'];
+  imageSource?: SoundEntry['imageSource'];
   loudness: number;
 };
 
@@ -66,10 +73,14 @@ export default function Wizard({
       {step === 'image' && (
         <ImageStep
           file={draft.image}
-          onFile={(f) => onDraft({ ...draft, image: f })}
+          imageSource={draft.imageSource}
+          name={draft.name}
+          onImage={(file, source) =>
+            onDraft({ ...draft, image: file, imageSource: source })
+          }
           onBack={() => onStep('name')}
           onNext={() => draft.image && onStep('audio')}
-          name={draft.name}
+          onOpenSettings={onOpenSettings}
         />
       )}
       {step === 'audio' && (
@@ -176,20 +187,84 @@ function NameStep({
   );
 }
 
-/* ────────── Image step ────────── */
+/* ────────── Image step (drop OR Pixabay search) ────────── */
+
+type ImagePickerSource = 'drop' | 'pixabay';
 
 function ImageStep({
   file,
-  onFile,
+  imageSource,
+  name,
+  onImage,
   onBack,
   onNext,
-  name,
+  onOpenSettings,
 }: {
-  file: File | null;
-  onFile: (f: File | null) => void;
+  file: Blob | null;
+  imageSource?: SoundEntry['imageSource'];
+  name: string;
+  onImage: (file: Blob | null, source?: SoundEntry['imageSource']) => void;
   onBack: () => void;
   onNext: () => void;
-  name: string;
+  onOpenSettings: () => void;
+}) {
+  const apiKey = getPixabayKey();
+  const [tab, setTab] = useState<ImagePickerSource>(apiKey ? 'pixabay' : 'drop');
+
+  return (
+    <div className="step-body">
+      <h4>What does "{name}" look like?</h4>
+      <div className="seg-tabs">
+        <button
+          type="button"
+          className={`seg-tab${tab === 'drop' ? ' active' : ''}`}
+          onClick={() => setTab('drop')}
+        >
+          Drop a file
+        </button>
+        <button
+          type="button"
+          className={`seg-tab${tab === 'pixabay' ? ' active' : ''}`}
+          onClick={() => (apiKey ? setTab('pixabay') : onOpenSettings())}
+          title={apiKey ? '' : 'Add your Pixabay key in Settings'}
+        >
+          Search Pixabay{apiKey ? '' : ' →'}
+        </button>
+      </div>
+
+      {/* Both panes stay mounted so toggling tabs doesn't lose search state. */}
+      <div className={tab === 'drop' ? '' : 'hidden'}>
+        <DropImage file={file} onFile={(f) => onImage(f, undefined)} />
+      </div>
+      {apiKey && (
+        <div className={tab === 'pixabay' ? '' : 'hidden'}>
+          <PixabaySearch
+            query={name}
+            apiKey={apiKey}
+            selected={imageSource?.provider === 'pixabay' ? imageSource.imageId : null}
+            onPick={(blob, src) => onImage(blob, src)}
+          />
+        </div>
+      )}
+
+      <div className="row split">
+        <button type="button" className="btn-secondary" onClick={onBack}>
+          ← Back
+        </button>
+        <button type="button" className="btn" disabled={!file} onClick={onNext}>
+          Next →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DropImage({
+  file,
+  onFile,
+}: {
+  file: Blob | null;
+  onFile: (f: File | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -208,9 +283,7 @@ function ImageStep({
   };
 
   return (
-    <div className="step-body">
-      <h4>What does "{name}" look like?</h4>
-      <p className="muted">Drag a picture here, or tap to choose one.</p>
+    <>
       <div
         className={`dropzone${over ? ' over' : ''}${file ? ' has-file' : ''}`}
         onDragOver={(e) => {
@@ -231,7 +304,7 @@ function ImageStep({
           </>
         )}
         {file && previewUrl && (
-          <img className="preview-image" src={previewUrl} alt={file.name} />
+          <img className="preview-image" src={previewUrl} alt="" />
         )}
         <input
           ref={inputRef}
@@ -246,13 +319,104 @@ function ImageStep({
           Choose a different picture
         </button>
       )}
-      <div className="row split">
-        <button type="button" className="btn-secondary" onClick={onBack}>
-          ← Back
+    </>
+  );
+}
+
+function PixabaySearch({
+  query: initialQuery,
+  apiKey,
+  selected,
+  onPick,
+}: {
+  query: string;
+  apiKey: string;
+  selected: number | null;
+  onPick: (blob: Blob, source: NonNullable<SoundEntry['imageSource']>) => void;
+}) {
+  const [query, setQuery] = useState(initialQuery);
+  const [results, setResults] = useState<PixabayResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [picking, setPicking] = useState<number | null>(null);
+
+  const search = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await searchPixabay(query.trim(), apiKey);
+      setResults(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialQuery.trim() && results.length === 0) {
+      search();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pickResult = async (r: PixabayResult) => {
+    setPicking(r.id);
+    setError(null);
+    try {
+      const blob = await fetchImageBlob(r.webformatURL);
+      onPick(blob, {
+        provider: 'pixabay',
+        imageId: r.id,
+        author: r.user,
+        url: r.pageURL,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPicking(null);
+    }
+  };
+
+  return (
+    <div className="pixabay-search">
+      <div className="row">
+        <input
+          className="text-input"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && search()}
+          placeholder="Search Pixabay (e.g. lion)"
+        />
+        <button type="button" className="btn" onClick={search} disabled={loading}>
+          {loading ? 'Searching…' : 'Search'}
         </button>
-        <button type="button" className="btn" disabled={!file} onClick={onNext}>
-          Next →
-        </button>
+      </div>
+      {error && <p className="error small">{error}</p>}
+      <div className="px-grid">
+        {results.map((r) => {
+          const isSelected = selected === r.id;
+          const isPicking = picking === r.id;
+          return (
+            <button
+              type="button"
+              key={r.id}
+              className={`px-tile${isSelected ? ' selected' : ''}`}
+              onClick={() => pickResult(r)}
+              disabled={isPicking}
+              aria-label={`Use ${r.tags} by ${r.user}`}
+            >
+              <img src={r.previewURL} alt={r.tags} />
+              <div className="px-tile-author muted small">by {r.user}</div>
+              {isPicking && <div className="px-tile-badge">…</div>}
+              {isSelected && !isPicking && <div className="px-tile-badge">✓</div>}
+            </button>
+          );
+        })}
+        {!loading && results.length === 0 && !error && (
+          <div className="muted small">Type a query and tap Search.</div>
+        )}
       </div>
     </div>
   );

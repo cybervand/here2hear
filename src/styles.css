@@ -114,6 +114,17 @@ body {
   transform: translateY(1px);
 }
 
+.btn-secondary:active:not(:disabled),
+.icon-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.mode-tab:active,
+.subnav-tab:active,
+.seg-tab:active {
+  transform: scale(0.96);
+}
+
 .btn-secondary {
   appearance: none;
   border: 1px solid var(--border);
@@ -259,12 +270,11 @@ body {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  /* Bound the card row height so cards stay phone-friendly on tall screens */
-  max-height: 32vh;
-  min-height: 110px;
 }
 
 .card {
+  position: relative;
+  aspect-ratio: 1;
   background: var(--panel);
   border: 2px solid var(--border);
   border-radius: 16px;
@@ -275,11 +285,16 @@ body {
   justify-content: center;
   gap: 4px;
   cursor: grab;
-  transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s, border-color 0.15s;
+  transition: transform 0.1s, box-shadow 0.15s, opacity 0.2s, border-color 0.15s;
   touch-action: none;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
+}
+
+/* Instant press feedback. Inline transform during drag overrides this. */
+.card:active {
+  transform: scale(0.94);
 }
 
 .card.dragging {
@@ -294,6 +309,27 @@ body {
 .card.placed {
   opacity: 0.3;
   pointer-events: none;
+}
+
+/* "This card is making the sound right now" — pulsing ring around the card. */
+.card.playing {
+  border-color: var(--accent);
+}
+
+.card.playing::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 3px solid var(--accent);
+  border-radius: 18px;
+  pointer-events: none;
+  animation: card-ring 1.1s ease-out infinite;
+  box-sizing: border-box;
+}
+
+@keyframes card-ring {
+  0% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.18); }
 }
 
 .card-image-wrap {
@@ -326,32 +362,31 @@ body {
 }
 
 .slots {
+  /* Use the same 4-column grid as the cards row so each slot ends up
+     exactly card-sized. Slots occupy columns 2 and 3 (centered). */
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
   align-self: center;
   width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-  /* Cap how tall slots can grow on big screens */
-  max-height: 60vh;
 }
 
+.slot-softest { grid-column: 2; }
+.slot-loudest { grid-column: 3; }
+
 .slot {
-  border: 4px dashed var(--border);
-  border-radius: 24px;
-  padding: 14px;
+  aspect-ratio: 1;
+  border: 3px dashed var(--border);
+  border-radius: 16px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   position: relative;
   background: rgba(255, 255, 255, 0.02);
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
-  /* Prominent target size — slots are the centerpiece */
-  min-height: 200px;
-  aspect-ratio: 1 / 1.05;
 }
 
 .slot-softest {
@@ -380,24 +415,24 @@ body {
 }
 
 .slot-icon {
-  font-size: clamp(40px, 9vw, 64px);
+  font-size: clamp(28px, 5vw, 44px);
   line-height: 1;
 }
 
 .slot-label {
   font-weight: 800;
-  font-size: clamp(16px, 3.4vw, 22px);
+  font-size: clamp(12px, 2vw, 16px);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .slot-filled-image {
   position: absolute;
-  inset: 12px;
-  width: calc(100% - 24px);
-  height: calc(100% - 24px);
+  inset: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
   object-fit: contain;
-  border-radius: 16px;
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -598,6 +633,84 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ── Pixabay image grid ── */
+
+.pixabay-search {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.px-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.px-tile {
+  appearance: none;
+  border: 2px solid transparent;
+  background: var(--bg-2);
+  border-radius: 10px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  transition: transform 0.1s, border-color 0.1s, background 0.1s;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.px-tile:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.px-tile:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.px-tile.selected {
+  border-color: var(--good);
+  background: rgba(69, 201, 122, 0.1);
+}
+
+.px-tile img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.px-tile-author {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.px-tile-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--good);
+  color: white;
+  border-radius: 999px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 /* ── Waveform / trim ── */

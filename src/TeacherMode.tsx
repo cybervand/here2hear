@@ -43,6 +43,7 @@ export default function TeacherMode() {
         loudness: draft.loudness,
         ...(trimmed ? { startSec: draft.startSec, endSec: draft.endSec } : {}),
         ...(draft.source ? { source: draft.source } : {}),
+        ...(draft.imageSource ? { imageSource: draft.imageSource } : {}),
       });
       await refresh();
       reset();
@@ -177,11 +178,23 @@ function LibraryRow({ entry, onDelete }: { entry: SoundEntry; onDelete: () => vo
         </div>
         {entry.source && (
           <div className="muted small">
-            {entry.source.author} •{' '}
+            🔊 {entry.source.author} •{' '}
             <a href={entry.source.url} target="_blank" rel="noopener noreferrer">
               Freesound
             </a>{' '}
             • {shortLicense(entry.source.license)}
+          </div>
+        )}
+        {entry.imageSource && (
+          <div className="muted small">
+            🖼️ {entry.imageSource.author} •{' '}
+            <a
+              href={entry.imageSource.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Pixabay
+            </a>
           </div>
         )}
       </div>

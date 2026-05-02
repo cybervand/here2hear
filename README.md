@@ -20,7 +20,7 @@ There are two tabs at the top of the screen.
 Add at least 4 sounds. For each one, the wizard asks you for:
 
 - a **name** ("lion", "whisper", "thunder")
-- a **picture** — drag it in from your desktop
+- a **picture** — drag it in from your desktop, or search Pixabay (see below)
 - a **sound** — drag it in, or search Freesound (see below)
 - a **trim** if you only want part of a long clip to play
 - a **loudness** — slide from soft to loud
@@ -35,14 +35,27 @@ Four pictures appear at the bottom of the screen. The kid:
 
 When both are right, they get a star and the next round starts.
 
-## Freesound (optional but recommended)
+## Free libraries (optional but recommended)
 
-Freesound is a free online library of thousands of sounds. You can search it from inside the Teacher tab instead of hunting for audio files yourself.
+Both setups are similar: sign up, copy a key, paste it into **Teacher → Settings**.
+
+### Freesound — for sounds
+
+A free library of thousands of sound effects.
 
 1. Sign up at <https://freesound.org>
 2. Get a key at <https://freesound.org/apiv2/apply> (you can fill the form with anything)
 3. In the app: **Teacher → Settings**, paste the **Secret Key**, click **Save**
-4. The Teacher wizard now has a "Search Freesound" option
+4. The audio step now has a "Search Freesound" option
+
+### Pixabay — for pictures
+
+A free library of photos and illustrations. Illustrations are often friendlier than photos for kindergarten use.
+
+1. Sign up at <https://pixabay.com/accounts/register/>
+2. Once you're logged in, your API key is shown on <https://pixabay.com/api/docs/> (it's auto-generated)
+3. In the app: **Teacher → Settings**, paste the **API Key**, click **Save**
+4. The picture step now has a "Search Pixabay" option
 
 ## Where the sounds are saved
 
