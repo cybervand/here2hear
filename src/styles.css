@@ -670,6 +670,10 @@ body {
   margin-left: 8px;
 }
 
+.hidden {
+  display: none;
+}
+
 .teacher-grid {
   display: grid;
   grid-template-columns: 1fr;

@@ -100,14 +100,13 @@ export async function deleteSound(id: string): Promise<void> {
   });
 }
 
-export async function updateSound(entry: SoundEntry): Promise<void> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(entry);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+/** In-place Fisher-Yates shuffle. Unbiased; safe for small arrays. */
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 /** Pick `count` distinct entries with a clear loudest + softest. */
@@ -119,8 +118,6 @@ export function pickRound(library: SoundEntry[], count = 4): SoundEntry[] | null
   const loudest = sorted[sorted.length - 1];
   if (softest.loudness === loudest.loudness) return null;
   const middle = sorted.slice(1, -1);
-  const shuffledMiddle = middle.sort(() => Math.random() - 0.5);
-  const fill = shuffledMiddle.slice(0, count - 2);
-  const round = [softest, loudest, ...fill];
-  return round.sort(() => Math.random() - 0.5);
+  const fill = shuffle(middle).slice(0, count - 2);
+  return shuffle([softest, loudest, ...fill]);
 }
