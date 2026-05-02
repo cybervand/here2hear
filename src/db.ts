@@ -26,6 +26,22 @@ export type SoundEntry = {
   };
 };
 
+/**
+ * Generate a unique ID. `crypto.randomUUID()` is only defined in secure contexts
+ * (HTTPS/localhost), so we fall back to timestamp + random for plain HTTP on a
+ * LAN — IDs are just local primary keys, no crypto needed.
+ */
+function randomId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID();
+    } catch {
+      // Fall through to the non-secure fallback.
+    }
+  }
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openDb(): Promise<IDBDatabase> {
@@ -50,7 +66,7 @@ export async function addSound(
   const db = await openDb();
   const entry: SoundEntry = {
     ...data,
-    id: crypto.randomUUID(),
+    id: randomId(),
     createdAt: Date.now(),
   };
   return new Promise((resolve, reject) => {

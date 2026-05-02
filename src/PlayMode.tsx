@@ -38,25 +38,48 @@ export default function PlayMode() {
 
   const placedIds = new Set(Object.values(placement));
 
+  // Single in-flight playback. New taps pre-empt the previous one so spam-tapping
+  // doesn't stack overlapping audio.
+  const currentRef = useRef<{
+    audio: HTMLAudioElement;
+    url: string;
+    timer: number | null;
+  } | null>(null);
+
+  const stopCurrent = () => {
+    const cur = currentRef.current;
+    if (!cur) return;
+    if (cur.timer !== null) window.clearTimeout(cur.timer);
+    cur.audio.pause();
+    URL.revokeObjectURL(cur.url);
+    currentRef.current = null;
+  };
+
+  useEffect(() => () => stopCurrent(), []);
+
   const playEntry = (entry: SoundEntry) => {
+    stopCurrent();
+
     const url = URL.createObjectURL(entry.audio);
     const a = new Audio(url);
     const start = entry.startSec ?? 0;
     const end = entry.endSec;
     const trimmed = end !== undefined && end > start;
 
-    const cleanup = () => URL.revokeObjectURL(url);
+    const handle = { audio: a, url, timer: null as number | null };
+    currentRef.current = handle;
 
     a.addEventListener(
       'loadedmetadata',
       () => {
+        // Bail if a newer tap already replaced us.
+        if (currentRef.current !== handle) return;
         if (start > 0) a.currentTime = start;
         a.play().catch(() => {});
         if (trimmed) {
-          window.setTimeout(
+          handle.timer = window.setTimeout(
             () => {
-              a.pause();
-              cleanup();
+              if (currentRef.current === handle) stopCurrent();
             },
             (end - start) * 1000 + 50,
           );
@@ -64,7 +87,9 @@ export default function PlayMode() {
       },
       { once: true },
     );
-    if (!trimmed) a.addEventListener('ended', cleanup);
+    a.addEventListener('ended', () => {
+      if (currentRef.current === handle) stopCurrent();
+    });
   };
 
   const onDrop = (entry: SoundEntry, slot: SlotKey) => {

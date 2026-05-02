@@ -222,23 +222,28 @@ function SettingsPage() {
   const initial = getCredentials();
   const [clientId, setClientId] = useState(initial.clientId);
   const [apiKey, setApiKeyInput] = useState(initial.apiKey);
+  const [saved, setSaved] = useState<{ clientId: string; apiKey: string }>(initial);
   const [showKey, setShowKey] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const save = () => {
-    setCredentials({ clientId: clientId.trim(), apiKey: apiKey.trim() });
+    const next = { clientId: clientId.trim(), apiKey: apiKey.trim() };
+    setCredentials(next);
+    setSaved(next);
+    setClientId(next.clientId);
+    setApiKeyInput(next.apiKey);
     setSavedAt(Date.now());
   };
 
   const clear = () => {
     setCredentials({ clientId: '', apiKey: '' });
+    setSaved({ clientId: '', apiKey: '' });
     setClientId('');
     setApiKeyInput('');
     setSavedAt(Date.now());
   };
 
-  const dirty =
-    clientId !== initial.clientId || apiKey !== initial.apiKey;
+  const dirty = clientId !== saved.clientId || apiKey !== saved.apiKey;
 
   return (
     <section className="settings-page">
@@ -1087,14 +1092,10 @@ function LoudnessStep({
 /* ────────── Library row ────────── */
 
 function LibraryRow({ entry, onDelete }: { entry: SoundEntry; onDelete: () => void }) {
+  // URLs are intentionally not revoked. Browser reclaims them on tab close, and
+  // revoking here races with React's StrictMode simulated remount (see PlayMode).
   const imageUrl = useMemo(() => URL.createObjectURL(entry.image), [entry.image]);
   const audioUrl = useMemo(() => URL.createObjectURL(entry.audio), [entry.audio]);
-  useEffect(() => {
-    return () => {
-      URL.revokeObjectURL(imageUrl);
-      URL.revokeObjectURL(audioUrl);
-    };
-  }, [imageUrl, audioUrl]);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const stopTimerRef = useRef<number | null>(null);
