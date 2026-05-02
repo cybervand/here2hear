@@ -1,17 +1,42 @@
 import { useState } from 'react';
 import { getCredentials, setCredentials } from '../freesound';
+import { SUPPORTED_LOCALES, useT, type Locale } from '../i18n';
 import { getApiKey as getPixabayKey, setApiKey as setPixabayKey } from '../pixabay';
 
 export default function SettingsPage() {
   return (
     <section className="settings-page">
+      <LanguageCard />
       <FreesoundCard />
       <PixabayCard />
     </section>
   );
 }
 
+function LanguageCard() {
+  const { t, locale, setLocale } = useT();
+  return (
+    <div className="settings-card">
+      <h3>{t('settings.language.title')}</h3>
+      <p className="muted">{t('settings.language.body')}</p>
+      <div className="seg-tabs">
+        {SUPPORTED_LOCALES.map((l) => (
+          <button
+            key={l.code}
+            type="button"
+            className={`seg-tab${locale === l.code ? ' active' : ''}`}
+            onClick={() => setLocale(l.code as Locale)}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FreesoundCard() {
+  const { t } = useT();
   const initial = getCredentials();
   const [clientId, setClientId] = useState(initial.clientId);
   const [apiKey, setApiKeyInput] = useState(initial.apiKey);
@@ -40,9 +65,9 @@ function FreesoundCard() {
 
   return (
     <div className="settings-card">
-      <h3>🔊 Freesound (audio search)</h3>
+      <h3>{t('settings.freesound.title')}</h3>
       <p className="muted">
-        Search sound effects from the audio step. Get credentials at{' '}
+        {t('settings.freesound.intro')}{' '}
         <a
           href="https://freesound.org/apiv2/apply/"
           target="_blank"
@@ -54,28 +79,28 @@ function FreesoundCard() {
       </p>
 
       <label className="field">
-        <span className="field-label">Client ID</span>
+        <span className="field-label">{t('settings.freesound.clientId')}</span>
         <input
           className="text-input"
           value={clientId}
           onChange={(e) => setClientId(e.target.value)}
-          placeholder="Your Freesound Client ID"
+          placeholder={t('settings.freesound.clientIdPlaceholder')}
           autoComplete="off"
         />
         <span className="field-hint muted small">
-          Stored for reference. Not strictly required for searching.
+          {t('settings.freesound.clientIdHint')}
         </span>
       </label>
 
       <label className="field">
-        <span className="field-label">Secret Key (API key)</span>
+        <span className="field-label">{t('settings.freesound.secretKey')}</span>
         <div className="field-row">
           <input
             className="text-input"
             type={showKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => setApiKeyInput(e.target.value)}
-            placeholder="Your Freesound API key"
+            placeholder={t('settings.freesound.secretKeyPlaceholder')}
             autoComplete="off"
           />
           <button
@@ -83,30 +108,31 @@ function FreesoundCard() {
             className="btn-secondary"
             onClick={() => setShowKey((v) => !v)}
           >
-            {showKey ? 'Hide' : 'Show'}
+            {showKey ? t('settings.hide') : t('settings.show')}
           </button>
         </div>
         <span className="field-hint muted small">
-          Used to call the Freesound search API.
+          {t('settings.freesound.secretKeyHint')}
         </span>
       </label>
 
       <div className="row">
         <button type="button" className="btn" onClick={save} disabled={!dirty}>
-          Save
+          {t('settings.save')}
         </button>
         {(clientId || apiKey) && (
           <button type="button" className="btn-text" onClick={clear}>
-            Remove credentials
+            {t('settings.removeCredentials')}
           </button>
         )}
-        {savedAt && !dirty && <span className="muted small">Saved ✓</span>}
+        {savedAt && !dirty && <span className="muted small">{t('settings.saved')}</span>}
       </div>
     </div>
   );
 }
 
 function PixabayCard() {
+  const { t } = useT();
   const initial = getPixabayKey();
   const [apiKey, setApiKeyInput] = useState(initial);
   const [saved, setSaved] = useState(initial);
@@ -132,9 +158,9 @@ function PixabayCard() {
 
   return (
     <div className="settings-card">
-      <h3>🖼️ Pixabay (picture search)</h3>
+      <h3>{t('settings.pixabay.title')}</h3>
       <p className="muted">
-        Search photos and illustrations from the picture step. Sign up at{' '}
+        {t('settings.pixabay.introBefore')}{' '}
         <a
           href="https://pixabay.com/accounts/register/"
           target="_blank"
@@ -142,26 +168,26 @@ function PixabayCard() {
         >
           pixabay.com
         </a>
-        , then your key is shown on the{' '}
+        {t('settings.pixabay.introMiddle')}{' '}
         <a
           href="https://pixabay.com/api/docs/"
           target="_blank"
           rel="noopener noreferrer"
         >
-          API docs page
+          {t('settings.pixabay.apiDocs')}
         </a>{' '}
-        when you're logged in.
+        {t('settings.pixabay.introAfter')}
       </p>
 
       <label className="field">
-        <span className="field-label">API Key</span>
+        <span className="field-label">{t('settings.pixabay.apiKey')}</span>
         <div className="field-row">
           <input
             className="text-input"
             type={showKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => setApiKeyInput(e.target.value)}
-            placeholder="Your Pixabay API key"
+            placeholder={t('settings.pixabay.apiKeyPlaceholder')}
             autoComplete="off"
           />
           <button
@@ -169,27 +195,24 @@ function PixabayCard() {
             className="btn-secondary"
             onClick={() => setShowKey((v) => !v)}
           >
-            {showKey ? 'Hide' : 'Show'}
+            {showKey ? t('settings.hide') : t('settings.show')}
           </button>
         </div>
       </label>
 
       <div className="row">
         <button type="button" className="btn" onClick={save} disabled={!dirty}>
-          Save
+          {t('settings.save')}
         </button>
         {apiKey && (
           <button type="button" className="btn-text" onClick={clear}>
-            Remove key
+            {t('settings.removeKey')}
           </button>
         )}
-        {savedAt && !dirty && <span className="muted small">Saved ✓</span>}
+        {savedAt && !dirty && <span className="muted small">{t('settings.saved')}</span>}
       </div>
 
-      <p className="muted small note">
-        Credentials live only in this browser. They never leave your device except in the
-        API requests to Freesound and Pixabay.
-      </p>
+      <p className="muted small note">{t('settings.note')}</p>
     </div>
   );
 }

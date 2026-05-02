@@ -55,6 +55,12 @@ If Openverse alone isn't enough, you can plug in free API keys for Pixabay (more
 2. Get a key at <https://freesound.org/apiv2/apply> (you can fill the form with anything)
 3. In the app: **Teacher → Settings**, paste the **Secret Key**, click **Save**
 
+## Languages
+
+The app starts in your browser's language if it's supported (currently English and Norwegian Bokmål); otherwise English. You can switch any time in **Teacher → Settings**, top card.
+
+Adding more languages is a matter of dropping another dictionary into [src/i18n.tsx](src/i18n.tsx).
+
 ## Where the sounds are saved
 
 Everything you add lives on the device you set it up on — there's no cloud sync. If you build the library on the classroom laptop, that's where it stays. Clearing the browser's data will erase the library.

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { listSounds, pickRound, type SoundEntry } from './db';
+import { useT } from './i18n';
 
 type SlotKey = 'loudest' | 'softest';
 type Placement = Partial<Record<SlotKey, string>>;
@@ -8,6 +9,7 @@ type Phase = 'loading' | 'empty' | 'playing' | 'celebrate';
 const TAP_THRESHOLD_PX = 8;
 
 export default function PlayMode() {
+  const { t } = useT();
   const [library, setLibrary] = useState<SoundEntry[] | null>(null);
   const [picks, setPicks] = useState<SoundEntry[]>([]);
   const [placement, setPlacement] = useState<Placement>({});
@@ -126,7 +128,7 @@ export default function PlayMode() {
   if (phase === 'loading') {
     return (
       <div className="overlay">
-        <p>Loading…</p>
+        <p>{t('play.loading')}</p>
       </div>
     );
   }
@@ -134,11 +136,8 @@ export default function PlayMode() {
   if (phase === 'empty') {
     return (
       <div className="overlay">
-        <h1>Almost ready!</h1>
-        <p>
-          Ask your teacher to add at least 4 sounds with different loudness levels in the
-          Teacher tab.
-        </p>
+        <h1>{t('play.empty.title')}</h1>
+        <p>{t('play.empty.body')}</p>
       </div>
     );
   }
@@ -146,7 +145,7 @@ export default function PlayMode() {
   if (phase === 'celebrate') {
     return (
       <div className="overlay celebrate">
-        <h1>Great job!</h1>
+        <h1>{t('play.greatJob')}</h1>
         <div className="star-row" aria-hidden>
           {Array.from({ length: Math.min(stars, 10) }).map((_, i) => (
             <span key={i} className="star">
@@ -155,7 +154,7 @@ export default function PlayMode() {
           ))}
         </div>
         <button type="button" className="btn" onClick={nextRound}>
-          Play again
+          {t('play.playAgain')}
         </button>
       </div>
     );
@@ -199,6 +198,7 @@ function Board({
   onTap,
   onDrop,
 }: BoardProps) {
+  const { t } = useT();
   const slotRefs = {
     loudest: useRef<HTMLDivElement>(null),
     softest: useRef<HTMLDivElement>(null),
@@ -220,14 +220,16 @@ function Board({
   return (
     <div className="board">
       <div className="topbar">
-        <span>Round {round + 1}</span>
-        <span aria-label={`${stars} stars`}>{'⭐'.repeat(Math.min(stars, 5))}</span>
+        <span>{t('play.round', { n: round + 1 })}</span>
+        <span aria-label={t('play.stars.aria', { n: stars })}>
+          {'⭐'.repeat(Math.min(stars, 5))}
+        </span>
       </div>
 
       <div className="slots">
         <Slot
           kind="softest"
-          label="Softest"
+          label={t('play.softest')}
           icon="🔈"
           filled={placement.softest ? lookup.get(placement.softest) : undefined}
           highlight={drag?.overSlot === 'softest'}
@@ -236,7 +238,7 @@ function Board({
         />
         <Slot
           kind="loudest"
-          label="Loudest"
+          label={t('play.loudest')}
           icon="📢"
           filled={placement.loudest ? lookup.get(placement.loudest) : undefined}
           highlight={drag?.overSlot === 'loudest'}
@@ -287,6 +289,7 @@ function Card({
   isDraggingThis,
   isPlaying,
 }: CardProps) {
+  const { t } = useT();
   const ref = useRef<HTMLDivElement>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const draggingRef = useRef(false);
@@ -385,7 +388,7 @@ function Card({
       </div>
       <div className="card-label">{entry.name}</div>
       <div className="card-hint" aria-hidden>
-        🔊 tap to hear
+        {t('play.tapToHear')}
       </div>
     </div>
   );

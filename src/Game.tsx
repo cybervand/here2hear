@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import PlayMode from './PlayMode';
 import TeacherMode from './TeacherMode';
+import { useT } from './i18n';
 
 type Mode = 'play' | 'teacher';
 
 export default function Game() {
+  const { t } = useT();
   const [mode, setMode] = useState<Mode>('play');
 
   return (
@@ -15,14 +17,14 @@ export default function Game() {
           className={`mode-tab${mode === 'play' ? ' active' : ''}`}
           onClick={() => setMode('play')}
         >
-          🎮 Play
+          {t('app.play')}
         </button>
         <button
           type="button"
           className={`mode-tab${mode === 'teacher' ? ' active' : ''}`}
           onClick={() => setMode('teacher')}
         >
-          🧑‍🏫 Teacher
+          {t('app.teacher')}
         </button>
       </nav>
 

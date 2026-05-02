@@ -6,6 +6,7 @@ import {
   shortLicense as freesoundLicense,
   type FreesoundResult,
 } from '../freesound';
+import { useT } from '../i18n';
 import {
   getApiKey as getPixabayKey,
   searchPixabay,
@@ -132,12 +133,13 @@ export default function Wizard({
 /* ────────── Stepper ────────── */
 
 function Stepper({ step, draft }: { step: Step; draft: Draft }) {
+  const { t } = useT();
   const steps: { key: Step; label: string; done: boolean }[] = [
-    { key: 'name', label: 'Name', done: !!draft.name.trim() },
-    { key: 'image', label: 'Picture', done: !!draft.image },
-    { key: 'audio', label: 'Sound', done: !!draft.audio },
-    { key: 'trim', label: 'Trim', done: draft.duration > 0 && draft.endSec > 0 },
-    { key: 'loudness', label: 'Loudness', done: false },
+    { key: 'name', label: t('wizard.step.name'), done: !!draft.name.trim() },
+    { key: 'image', label: t('wizard.step.picture'), done: !!draft.image },
+    { key: 'audio', label: t('wizard.step.sound'), done: !!draft.audio },
+    { key: 'trim', label: t('wizard.step.trim'), done: draft.duration > 0 && draft.endSec > 0 },
+    { key: 'loudness', label: t('wizard.step.loudness'), done: false },
   ];
   return (
     <ol className="stepper">
@@ -165,21 +167,22 @@ function NameStep({
   onChange: (v: string) => void;
   onNext: () => void;
 }) {
+  const { t } = useT();
   return (
     <div className="step-body">
-      <h4>What is this sound?</h4>
-      <p className="muted">Type the name (e.g. "lightning", "lion", "whisper").</p>
+      <h4>{t('wizard.name.title')}</h4>
+      <p className="muted">{t('wizard.name.body')}</p>
       <input
         autoFocus
         className="text-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && onNext()}
-        placeholder="Sound name"
+        placeholder={t('wizard.name.placeholder')}
       />
       <div className="row right">
         <button type="button" className="btn" disabled={!value.trim()} onClick={onNext}>
-          Next →
+          {t('wizard.next')}
         </button>
       </div>
     </div>
@@ -205,25 +208,26 @@ function ImageStep({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const { t } = useT();
   const [tab, setTab] = useState<ImagePickerSource>('search');
 
   return (
     <div className="step-body">
-      <h4>What does "{name}" look like?</h4>
+      <h4>{t('wizard.image.title', { name })}</h4>
       <div className="seg-tabs">
         <button
           type="button"
           className={`seg-tab${tab === 'drop' ? ' active' : ''}`}
           onClick={() => setTab('drop')}
         >
-          Drop a file
+          {t('wizard.dropFile')}
         </button>
         <button
           type="button"
           className={`seg-tab${tab === 'search' ? ' active' : ''}`}
           onClick={() => setTab('search')}
         >
-          Search
+          {t('wizard.search')}
         </button>
       </div>
 
@@ -243,10 +247,10 @@ function ImageStep({
 
       <div className="row split">
         <button type="button" className="btn-secondary" onClick={onBack}>
-          ← Back
+          {t('wizard.back')}
         </button>
         <button type="button" className="btn" disabled={!file} onClick={onNext}>
-          Next →
+          {t('wizard.next')}
         </button>
       </div>
     </div>
@@ -260,6 +264,7 @@ function DropImage({
   file: Blob | null;
   onFile: (f: File | null) => void;
 }) {
+  const { t } = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
@@ -293,8 +298,8 @@ function DropImage({
             <div className="dropzone-icon" aria-hidden>
               🖼️
             </div>
-            <div>Drop a picture here</div>
-            <div className="muted small">or click to browse</div>
+            <div>{t('wizard.image.dropHere')}</div>
+            <div className="muted small">{t('wizard.clickToBrowse')}</div>
           </>
         )}
         {file && previewUrl && (
@@ -310,7 +315,7 @@ function DropImage({
       </div>
       {file && (
         <button type="button" className="btn-text" onClick={() => onFile(null)}>
-          Choose a different picture
+          {t('wizard.image.different')}
         </button>
       )}
     </>
@@ -408,6 +413,7 @@ function ImageSearch({
   selectedKey: string | null;
   onPick: (blob: Blob, source: NonNullable<SoundEntry['imageSource']>) => void;
 }) {
+  const { t } = useT();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<ImageHit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -452,10 +458,10 @@ function ImageSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
-          placeholder="Search pictures (e.g. lion)"
+          placeholder={t('wizard.search.placeholder.image')}
         />
         <button type="button" className="btn" onClick={search} disabled={loading}>
-          {loading ? 'Searching…' : 'Search'}
+          {loading ? t('wizard.searching') : t('wizard.search')}
         </button>
       </div>
       {errors.map((msg, i) => (
@@ -474,7 +480,7 @@ function ImageSearch({
               className={`px-tile${isSelected ? ' selected' : ''}`}
               onClick={() => pickResult(hit)}
               disabled={isPicking}
-              aria-label={`Use ${hit.title} by ${hit.author}`}
+              aria-label={hit.title}
               title={hit.title}
             >
               <img src={hit.thumbnailUrl} alt={hit.title} loading="lazy" />
@@ -485,7 +491,7 @@ function ImageSearch({
           );
         })}
         {!loading && results.length === 0 && errors.length === 0 && (
-          <div className="muted small">Type a query and tap Search.</div>
+          <div className="muted small">{t('wizard.search.empty')}</div>
         )}
       </div>
     </div>
@@ -517,25 +523,26 @@ function AudioStep({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const { t } = useT();
   const [tab, setTab] = useState<AudioPickerSource>('search');
 
   return (
     <div className="step-body">
-      <h4>What does "{name}" sound like?</h4>
+      <h4>{t('wizard.audio.title', { name })}</h4>
       <div className="seg-tabs">
         <button
           type="button"
           className={`seg-tab${tab === 'drop' ? ' active' : ''}`}
           onClick={() => setTab('drop')}
         >
-          Drop a file
+          {t('wizard.dropFile')}
         </button>
         <button
           type="button"
           className={`seg-tab${tab === 'search' ? ' active' : ''}`}
           onClick={() => setTab('search')}
         >
-          Search
+          {t('wizard.search')}
         </button>
       </div>
 
@@ -556,10 +563,10 @@ function AudioStep({
 
       <div className="row split">
         <button type="button" className="btn-secondary" onClick={onBack}>
-          ← Back
+          {t('wizard.back')}
         </button>
         <button type="button" className="btn" disabled={!audio} onClick={onNext}>
-          Next →
+          {t('wizard.next')}
         </button>
       </div>
     </div>
@@ -575,6 +582,7 @@ function DropAudio({
   audioName: string;
   onAudio: (a: Blob | null, name: string) => void;
 }) {
+  const { t } = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const previewUrl = useMemo(() => (audio ? URL.createObjectURL(audio) : null), [audio]);
@@ -608,8 +616,8 @@ function DropAudio({
             <div className="dropzone-icon" aria-hidden>
               🎵
             </div>
-            <div>Drop an audio file here</div>
-            <div className="muted small">or click to browse</div>
+            <div>{t('wizard.audio.dropHere')}</div>
+            <div className="muted small">{t('wizard.clickToBrowse')}</div>
           </>
         )}
         {audio && previewUrl && (
@@ -639,7 +647,7 @@ function DropAudio({
       </div>
       {audio && (
         <button type="button" className="btn-text" onClick={() => onAudio(null, '')}>
-          Choose a different file
+          {t('wizard.audio.different')}
         </button>
       )}
     </>
@@ -755,6 +763,7 @@ function AudioSearch({
     displayName: string,
   ) => void;
 }) {
+  const { t } = useT();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<AudioHit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -821,10 +830,10 @@ function AudioSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
-          placeholder="Search sounds (e.g. thunder)"
+          placeholder={t('wizard.search.placeholder.audio')}
         />
         <button type="button" className="btn" onClick={search} disabled={loading}>
-          {loading ? 'Searching…' : 'Search'}
+          {loading ? t('wizard.searching') : t('wizard.search')}
         </button>
       </div>
       {errors.map((msg, i) => (
@@ -843,7 +852,7 @@ function AudioSearch({
                 type="button"
                 className="icon-btn"
                 onClick={() => playPreview(hit)}
-                aria-label={isPlaying ? 'Stop' : 'Play'}
+                aria-label={isPlaying ? t('wizard.search.stop') : t('wizard.search.play')}
               >
                 {isPlaying ? '■' : '▶'}
               </button>
@@ -859,13 +868,13 @@ function AudioSearch({
                 onClick={() => pickResult(hit)}
                 disabled={isPicking}
               >
-                {isPicking ? '…' : isSelected ? '✓ Picked' : 'Use this'}
+                {isPicking ? '…' : isSelected ? t('wizard.search.picked') : t('wizard.search.useThis')}
               </button>
             </li>
           );
         })}
         {!loading && results.length === 0 && errors.length === 0 && (
-          <li className="muted small">Type a query and tap Search.</li>
+          <li className="muted small">{t('wizard.search.empty')}</li>
         )}
       </ul>
     </div>
@@ -891,6 +900,7 @@ function TrimStep({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const { t } = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const stopTimerRef = useRef<number | null>(null);
@@ -1044,14 +1054,11 @@ function TrimStep({
 
   return (
     <div className="step-body">
-      <h4>Trim the sound</h4>
-      <p className="muted">
-        Drag the sliders to pick the part the kids will hear when they tap. Use Preview to
-        check.
-      </p>
+      <h4>{t('wizard.trim.title')}</h4>
+      <p className="muted">{t('wizard.trim.body')}</p>
       <div className="waveform-wrap">
         <canvas ref={canvasRef} className="waveform" />
-        {decoding && <div className="waveform-status">Decoding audio…</div>}
+        {decoding && <div className="waveform-status">{t('wizard.trim.decoding')}</div>}
         {decodeError && <div className="waveform-status error">{decodeError}</div>}
       </div>
       <audio
@@ -1068,7 +1075,7 @@ function TrimStep({
       />
       <div className="trim-controls">
         <label className="trim-row">
-          <span>Start</span>
+          <span>{t('wizard.trim.start')}</span>
           <input
             type="range"
             min={0}
@@ -1081,7 +1088,7 @@ function TrimStep({
           <span className="trim-readout">{formatTime(startSec)}</span>
         </label>
         <label className="trim-row">
-          <span>End</span>
+          <span>{t('wizard.trim.end')}</span>
           <input
             type="range"
             min={0}
@@ -1094,7 +1101,9 @@ function TrimStep({
           <span className="trim-readout">{formatTime(endSec)}</span>
         </label>
         <div className="trim-summary muted small">
-          Selected length: {formatTime(Math.max(0, endSec - startSec))}
+          {t('wizard.trim.length', {
+            time: formatTime(Math.max(0, endSec - startSec)),
+          })}
         </div>
       </div>
       <div className="row">
@@ -1104,15 +1113,15 @@ function TrimStep({
           onClick={playing ? stopPreview : preview}
           disabled={decoding || duration === 0}
         >
-          {playing ? '■ Stop' : '▶ Preview'}
+          {playing ? t('wizard.trim.stop') : t('wizard.trim.preview')}
         </button>
       </div>
       <div className="row split">
         <button type="button" className="btn-secondary" onClick={onBack}>
-          ← Back
+          {t('wizard.back')}
         </button>
         <button type="button" className="btn" onClick={onNext} disabled={decoding}>
-          Next →
+          {t('wizard.next')}
         </button>
       </div>
     </div>
@@ -1161,12 +1170,11 @@ function LoudnessStep({
   busy: boolean;
   name: string;
 }) {
+  const { t } = useT();
   return (
     <div className="step-body">
-      <h4>How loud is "{name}"?</h4>
-      <p className="muted">
-        Slide to where this sound belongs — soft on the left, loud on the right.
-      </p>
+      <h4>{t('wizard.loudness.title', { name })}</h4>
+      <p className="muted">{t('wizard.loudness.body')}</p>
       <div className="loudness-scale" aria-hidden>
         <span>🤫</span>
         <span>🔉</span>
@@ -1180,15 +1188,15 @@ function LoudnessStep({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="loudness-slider"
-        aria-label="Loudness from 0 to 100"
+        aria-label={t('wizard.loudness.aria')}
       />
-      <div className="loudness-readout">{value} / 100</div>
+      <div className="loudness-readout">{t('wizard.loudness.readout', { value })}</div>
       <div className="row split">
         <button type="button" className="btn-secondary" onClick={onBack} disabled={busy}>
-          ← Back
+          {t('wizard.back')}
         </button>
         <button type="button" className="btn" onClick={onSave} disabled={busy}>
-          {busy ? 'Saving…' : 'Save sound'}
+          {busy ? t('wizard.loudness.saving') : t('wizard.loudness.save')}
         </button>
       </div>
     </div>

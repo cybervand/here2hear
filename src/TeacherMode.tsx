@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { addSound, deleteSound, listSounds, type SoundEntry } from './db';
 import { shortLicense as freesoundLicense } from './freesound';
+import { useT } from './i18n';
 import { shortLicense as openverseLicense } from './openverse';
 import SettingsPage from './teacher/SettingsPage';
 import Wizard, { EMPTY_DRAFT, type Draft, type Step } from './teacher/Wizard';
@@ -8,6 +9,7 @@ import Wizard, { EMPTY_DRAFT, type Draft, type Step } from './teacher/Wizard';
 type View = 'library' | 'settings';
 
 export default function TeacherMode() {
+  const { t } = useT();
   const [view, setView] = useState<View>('library');
   const [library, setLibrary] = useState<SoundEntry[] | null>(null);
   const [step, setStep] = useState<Step>('name');
@@ -56,7 +58,7 @@ export default function TeacherMode() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Delete this sound from the library?')) return;
+    if (!confirm(t('library.confirmDelete'))) return;
     await deleteSound(id);
     await refresh();
   };
@@ -65,30 +67,25 @@ export default function TeacherMode() {
     <div className="teacher">
       <header className="teacher-header">
         <div className="teacher-title-row">
-          <h2>Teacher</h2>
+          <h2>{t('teacher.title')}</h2>
           <nav className="teacher-subnav">
             <button
               type="button"
               className={`subnav-tab${view === 'library' ? ' active' : ''}`}
               onClick={() => setView('library')}
             >
-              📚 Library
+              {t('teacher.subnav.library')}
             </button>
             <button
               type="button"
               className={`subnav-tab${view === 'settings' ? ' active' : ''}`}
               onClick={() => setView('settings')}
             >
-              ⚙️ Settings
+              {t('teacher.subnav.settings')}
             </button>
           </nav>
         </div>
-        {view === 'library' && (
-          <p className="teacher-sub">
-            Add new sounds the children can play with. Each entry needs a name, a picture,
-            an audio file, and a loudness rating.
-          </p>
-        )}
+        {view === 'library' && <p className="teacher-sub">{t('teacher.subtitle')}</p>}
       </header>
 
       {view === 'settings' && <SettingsPage />}
@@ -96,10 +93,10 @@ export default function TeacherMode() {
       {view === 'library' && (
         <section className="teacher-grid">
           <div className="library-panel">
-            <h3>Library ({library?.length ?? 0})</h3>
-            {library === null && <p className="muted">Loading…</p>}
+            <h3>{t('library.count', { n: library?.length ?? 0 })}</h3>
+            {library === null && <p className="muted">{t('library.loading')}</p>}
             {library && library.length === 0 && (
-              <p className="muted">No sounds yet. Add one on the right →</p>
+              <p className="muted">{t('library.empty')}</p>
             )}
             {library && library.length > 0 && (
               <ul className="library-list">
@@ -111,7 +108,7 @@ export default function TeacherMode() {
           </div>
 
           <div className="wizard-panel">
-            <h3>Add a new sound</h3>
+            <h3>{t('wizard.title')}</h3>
             <Wizard
               step={step}
               draft={draft}
@@ -120,7 +117,7 @@ export default function TeacherMode() {
               onDraft={setDraft}
               onSave={save}
             />
-            {error && <p className="error">Save failed: {error}</p>}
+            {error && <p className="error">{t('library.saveFailed', { error })}</p>}
           </div>
         </section>
       )}
@@ -131,6 +128,7 @@ export default function TeacherMode() {
 /* ────────── Library row ────────── */
 
 function LibraryRow({ entry, onDelete }: { entry: SoundEntry; onDelete: () => void }) {
+  const { t } = useT();
   // URLs are intentionally not revoked. Browser reclaims them on tab close, and
   // revoking here races with React's StrictMode simulated remount (see PlayMode).
   const imageUrl = useMemo(() => URL.createObjectURL(entry.image), [entry.image]);
@@ -171,7 +169,9 @@ function LibraryRow({ entry, onDelete }: { entry: SoundEntry; onDelete: () => vo
       <div className="library-meta">
         <div className="library-name">
           {entry.name}
-          {trimmed && <span className="trimmed-badge muted small">✂️ trimmed</span>}
+          {trimmed && (
+            <span className="trimmed-badge muted small">{t('library.trimmed')}</span>
+          )}
         </div>
         <div className="loudness-bar" title={`Loudness ${entry.loudness}/100`}>
           <div className="loudness-fill" ref={fillRef} />
@@ -204,14 +204,14 @@ function LibraryRow({ entry, onDelete }: { entry: SoundEntry; onDelete: () => vo
           </div>
         )}
       </div>
-      <button type="button" className="icon-btn" onClick={play} aria-label="Play">
+      <button type="button" className="icon-btn" onClick={play} aria-label={t('library.play')}>
         ▶
       </button>
       <button
         type="button"
         className="icon-btn danger"
         onClick={onDelete}
-        aria-label="Delete"
+        aria-label={t('library.delete')}
       >
         ✕
       </button>
