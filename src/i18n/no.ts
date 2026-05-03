@@ -67,11 +67,17 @@ const no: Record<keyof Translations, string> = {
 
   'wizard.loudness.title': 'Hvor høyt er «{name}»?',
   'wizard.loudness.body':
-    'Dra til hvor lyden hører hjemme — stille til venstre, høyt til høyre.',
+    'Dra til hvor lyden hører hjemme — stille til venstre, høyt til høyre. Ikonene over er referansepunkter.',
   'wizard.loudness.aria': 'Lydstyrke fra 0 til 100',
   'wizard.loudness.readout': '{value} / 100',
   'wizard.loudness.save': 'Lagre lyd',
   'wizard.loudness.saving': 'Lagrer…',
+  'wizard.loudness.anchor.sleeping': 'sover',
+  'wizard.loudness.anchor.whisper': 'hvisking',
+  'wizard.loudness.anchor.bird': 'fugl',
+  'wizard.loudness.anchor.dog': 'hund',
+  'wizard.loudness.anchor.drum': 'tromme',
+  'wizard.loudness.anchor.rocket': 'rakett',
 
   'settings.language.title': '🌐 Språk',
   'settings.language.body': 'Velg hvilket språk appen vises på.',

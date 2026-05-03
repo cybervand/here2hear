@@ -71,11 +71,17 @@ const ceb: Record<keyof Translations, string> = {
 
   'wizard.loudness.title': 'Unsa kakusog ang "{name}"?',
   'wizard.loudness.body':
-    'I-slide kung asa nahaom — hinay sa wala, kusog sa tuo.',
+    'I-slide kung asa nahaom — hinay sa wala, kusog sa tuo. Ang mga icon sa itaas mga pananglitan lang.',
   'wizard.loudness.aria': 'Kakusog gikan 0 hangtod 100',
   'wizard.loudness.readout': '{value} / 100',
   'wizard.loudness.save': 'I-save ang tingog',
   'wizard.loudness.saving': 'Nag-save…',
+  'wizard.loudness.anchor.sleeping': 'natulog',
+  'wizard.loudness.anchor.whisper': 'hunghong',
+  'wizard.loudness.anchor.bird': 'langgam',
+  'wizard.loudness.anchor.dog': 'iro',
+  'wizard.loudness.anchor.drum': 'tambol',
+  'wizard.loudness.anchor.rocket': 'rocket',
 
   'settings.language.title': '🌐 Pinulongan',
   'settings.language.body': 'Pagpili unsang pinulongan ang gamiton sa app.',

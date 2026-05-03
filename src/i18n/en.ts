@@ -75,11 +75,17 @@ const en = {
   // Loudness step
   'wizard.loudness.title': 'How loud is "{name}"?',
   'wizard.loudness.body':
-    'Slide to where this sound belongs — soft on the left, loud on the right.',
+    'Slide to where this sound belongs — soft on the left, loud on the right. The icons above are reference points.',
   'wizard.loudness.aria': 'Loudness from 0 to 100',
   'wizard.loudness.readout': '{value} / 100',
   'wizard.loudness.save': 'Save sound',
   'wizard.loudness.saving': 'Saving…',
+  'wizard.loudness.anchor.sleeping': 'sleeping',
+  'wizard.loudness.anchor.whisper': 'whisper',
+  'wizard.loudness.anchor.bird': 'bird',
+  'wizard.loudness.anchor.dog': 'dog',
+  'wizard.loudness.anchor.drum': 'drum',
+  'wizard.loudness.anchor.rocket': 'rocket',
 
   // Settings — language
   'settings.language.title': '🌐 Language',

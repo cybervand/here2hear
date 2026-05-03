@@ -69,11 +69,17 @@ const tl: Record<keyof Translations, string> = {
 
   'wizard.loudness.title': 'Gaano kalakas ang "{name}"?',
   'wizard.loudness.body':
-    'I-slide sa kung saan nababagay — mahina sa kaliwa, malakas sa kanan.',
+    'I-slide sa kung saan nababagay — mahina sa kaliwa, malakas sa kanan. Mga halimbawa lang ang mga icon sa itaas.',
   'wizard.loudness.aria': 'Lakas mula 0 hanggang 100',
   'wizard.loudness.readout': '{value} / 100',
   'wizard.loudness.save': 'I-save ang tunog',
   'wizard.loudness.saving': 'Sini-save…',
+  'wizard.loudness.anchor.sleeping': 'natutulog',
+  'wizard.loudness.anchor.whisper': 'bulong',
+  'wizard.loudness.anchor.bird': 'ibon',
+  'wizard.loudness.anchor.dog': 'aso',
+  'wizard.loudness.anchor.drum': 'tambol',
+  'wizard.loudness.anchor.rocket': 'rocket',
 
   'settings.language.title': '🌐 Wika',
   'settings.language.body': 'Pumili kung anong wika ang gagamitin ng app.',

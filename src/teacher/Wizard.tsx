@@ -1155,6 +1155,15 @@ function formatTime(sec: number): string {
 
 /* ────────── Loudness step ────────── */
 
+const LOUDNESS_ANCHORS = [
+  { value: 0, emoji: '😴', labelKey: 'wizard.loudness.anchor.sleeping' },
+  { value: 20, emoji: '🤫', labelKey: 'wizard.loudness.anchor.whisper' },
+  { value: 40, emoji: '🐦', labelKey: 'wizard.loudness.anchor.bird' },
+  { value: 60, emoji: '🐶', labelKey: 'wizard.loudness.anchor.dog' },
+  { value: 80, emoji: '🥁', labelKey: 'wizard.loudness.anchor.drum' },
+  { value: 100, emoji: '🚀', labelKey: 'wizard.loudness.anchor.rocket' },
+] as const;
+
 function LoudnessStep({
   value,
   onChange,
@@ -1171,15 +1180,38 @@ function LoudnessStep({
   name: string;
 }) {
   const { t } = useT();
+  const anchorRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    LOUDNESS_ANCHORS.forEach((a, i) => {
+      const el = anchorRefs.current[i];
+      if (el) el.style.left = `${a.value}%`;
+    });
+  }, []);
+
   return (
     <div className="step-body">
       <h4>{t('wizard.loudness.title', { name })}</h4>
       <p className="muted">{t('wizard.loudness.body')}</p>
-      <div className="loudness-scale" aria-hidden>
-        <span>🤫</span>
-        <span>🔉</span>
-        <span>🔊</span>
-        <span>📢</span>
+      <div className="loudness-scale">
+        {LOUDNESS_ANCHORS.map((a, i) => {
+          const label = t(a.labelKey);
+          return (
+            <div
+              key={a.value}
+              ref={(el) => {
+                anchorRefs.current[i] = el;
+              }}
+              className="loudness-anchor"
+              title={label}
+            >
+              <span className="loudness-anchor-emoji" aria-hidden>
+                {a.emoji}
+              </span>
+              <span className="loudness-anchor-label muted">{label}</span>
+            </div>
+          );
+        })}
       </div>
       <input
         type="range"
