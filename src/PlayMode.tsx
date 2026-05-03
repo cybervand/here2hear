@@ -134,10 +134,15 @@ export default function PlayMode() {
   }
 
   if (phase === 'empty') {
+    const count = library?.length ?? 0;
+    const distinctLoudnesses = new Set((library ?? []).map((e) => e.loudness)).size;
+    const allSame = count > 0 && distinctLoudnesses === 1;
     return (
       <div className="overlay">
         <h1>{t('play.empty.title')}</h1>
-        <p>{t('play.empty.body')}</p>
+        {count < 4 && <p>{t('play.empty.notEnough', { n: count })}</p>}
+        {count >= 4 && allSame && <p>{t('play.empty.sameLoudness')}</p>}
+        {count >= 4 && !allSame && <p>{t('play.empty.body')}</p>}
       </div>
     );
   }
