@@ -22,7 +22,7 @@ export default function PlayMode() {
   useEffect(() => {
     listSounds().then((items) => {
       setLibrary(items);
-      const r = pickRound(items, 4);
+      const r = pickRound(items);
       if (r) {
         setPicks(r);
         setPhase('playing');
@@ -114,7 +114,7 @@ export default function PlayMode() {
 
   const nextRound = () => {
     if (!library) return;
-    const r = pickRound(library, 4);
+    const r = pickRound(library);
     if (!r) {
       setPhase('empty');
       return;
@@ -140,9 +140,9 @@ export default function PlayMode() {
     return (
       <div className="overlay">
         <h1>{t('play.empty.title')}</h1>
-        {count < 4 && <p>{t('play.empty.notEnough', { n: count })}</p>}
-        {count >= 4 && allSame && <p>{t('play.empty.sameLoudness')}</p>}
-        {count >= 4 && !allSame && <p>{t('play.empty.body')}</p>}
+        {count < 2 && <p>{t('play.empty.notEnough', { n: count })}</p>}
+        {count >= 2 && allSame && <p>{t('play.empty.sameLoudness')}</p>}
+        {count >= 2 && !allSame && <p>{t('play.empty.body')}</p>}
       </div>
     );
   }

@@ -272,6 +272,15 @@ body {
   gap: 8px;
 }
 
+/* The kid game uses 2 cards in the middle of a 4-column grid so they
+   visually align with the 2 slots above (also at columns 2 and 3). */
+.cards .card:nth-child(1) {
+  grid-column: 2;
+}
+.cards .card:nth-child(2) {
+  grid-column: 3;
+}
+
 .card {
   position: relative;
   aspect-ratio: 1;

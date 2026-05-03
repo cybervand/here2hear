@@ -133,7 +133,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /** Pick `count` distinct entries with a clear loudest + softest. */
-export function pickRound(library: SoundEntry[], count = 4): SoundEntry[] | null {
+export function pickRound(library: SoundEntry[], count = 2): SoundEntry[] | null {
   if (library.length < count) return null;
   // Sort by loudness, force the extremes into the round, fill the middle randomly.
   const sorted = [...library].sort((a, b) => a.loudness - b.loudness);

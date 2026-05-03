@@ -126,17 +126,17 @@ const en = {
   'play.loading': 'Loading…',
   'play.empty.title': 'Almost ready!',
   'play.empty.body':
-    'Ask your teacher to add at least 4 sounds with different loudness levels in the Teacher tab.',
+    'Ask your teacher to add at least 2 sounds with different loudness levels in the Teacher tab.',
   'play.empty.notEnough':
-    'There are only {n} sounds in the library. Add at least 4 in the Teacher tab.',
+    'There are only {n} sounds in the library. Add at least 2 in the Teacher tab.',
   'play.empty.sameLoudness':
     'All sounds have the same loudness rating. When adding a sound, slide the Loudness slider so different sounds get different ratings (soft on the left, loud on the right).',
   'play.round': 'Round {n}',
   'play.stars.aria': '{n} stars',
   'play.greatJob': 'Great job!',
   'play.playAgain': 'Play again',
-  'play.softest': 'Softest',
-  'play.loudest': 'Loudest',
+  'play.softest': 'Soft',
+  'play.loudest': 'Loud',
   'play.tapToHear': '🔊 tap to hear',
 } as const;
 

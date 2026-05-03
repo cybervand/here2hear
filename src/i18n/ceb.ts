@@ -119,17 +119,17 @@ const ceb: Record<keyof Translations, string> = {
   'play.loading': 'Nag-load…',
   'play.empty.title': 'Hapit na!',
   'play.empty.body':
-    'Hangyo-a ang imong magtutudlo nga magdugang ug kabahin 4 ka tingog nga lain-lain ug kakusog sa Magtutudlo tab.',
+    'Hangyo-a ang imong magtutudlo nga magdugang ug kabahin 2 ka tingog nga lain-lain ug kakusog sa Magtutudlo tab.',
   'play.empty.notEnough':
-    '{n} ra ka tingog ang naa sa library. Pagdugang ug kabahin 4 sa Magtutudlo tab.',
+    '{n} ra ka tingog ang naa sa library. Pagdugang ug kabahin 2 sa Magtutudlo tab.',
   'play.empty.sameLoudness':
     'Parehas ang kakusog sa tanang tingog. Kung magdugang ka ug tingog, i-slide ang Kakusog slider aron lain-lain ang rating (hinay sa wala, kusog sa tuo).',
   'play.round': 'Round {n}',
   'play.stars.aria': '{n} ka bituon',
   'play.greatJob': 'Maayo!',
   'play.playAgain': 'Magdula pag-usab',
-  'play.softest': 'Pinakahinay',
-  'play.loudest': 'Pinakakusog',
+  'play.softest': 'Hinay',
+  'play.loudest': 'Kusog',
   'play.tapToHear': '🔊 pindota aron madungog',
 };
 

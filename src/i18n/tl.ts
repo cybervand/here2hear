@@ -117,17 +117,17 @@ const tl: Record<keyof Translations, string> = {
   'play.loading': 'Naglo-load…',
   'play.empty.title': 'Halos handa na!',
   'play.empty.body':
-    'Hilingin sa guro mo na magdagdag ng kahit 4 na tunog na may iba\'t ibang lakas sa Guro tab.',
+    'Hilingin sa guro mo na magdagdag ng kahit 2 tunog na may iba\'t ibang lakas sa Guro tab.',
   'play.empty.notEnough':
-    '{n} tunog lang ang nasa aklatan. Magdagdag ng kahit 4 sa Guro tab.',
+    '{n} tunog lang ang nasa aklatan. Magdagdag ng kahit 2 sa Guro tab.',
   'play.empty.sameLoudness':
     'Pareho ang lakas ng lahat ng tunog. Kapag nagdadagdag ng tunog, i-slide ang Lakas slider para magkaiba ang antas (mahina sa kaliwa, malakas sa kanan).',
   'play.round': 'Round {n}',
   'play.stars.aria': '{n} bituin',
   'play.greatJob': 'Galing!',
   'play.playAgain': 'Maglaro ulit',
-  'play.softest': 'Pinakamahina',
-  'play.loudest': 'Pinakamalakas',
+  'play.softest': 'Mahina',
+  'play.loudest': 'Malakas',
   'play.tapToHear': '🔊 pindutin para marinig',
 };
 

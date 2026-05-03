@@ -115,17 +115,17 @@ const no: Record<keyof Translations, string> = {
   'play.loading': 'Laster…',
   'play.empty.title': 'Nesten klart!',
   'play.empty.body':
-    'Be læreren legge til minst 4 lyder med ulik styrke i Lærer-fanen.',
+    'Be læreren legge til minst 2 lyder med ulik styrke i Lærer-fanen.',
   'play.empty.notEnough':
-    'Det er bare {n} lyder i biblioteket. Legg til minst 4 i Lærer-fanen.',
+    'Det er bare {n} lyder i biblioteket. Legg til minst 2 i Lærer-fanen.',
   'play.empty.sameLoudness':
     'Alle lydene har samme styrke. Når du legger til en lyd, dra Lydstyrke-bryteren slik at forskjellige lyder får forskjellige verdier (stille til venstre, høyt til høyre).',
   'play.round': 'Runde {n}',
   'play.stars.aria': '{n} stjerner',
   'play.greatJob': 'Bra jobbet!',
   'play.playAgain': 'Spill igjen',
-  'play.softest': 'Stillest',
-  'play.loudest': 'Høyest',
+  'play.softest': 'Stille',
+  'play.loudest': 'Høyt',
   'play.tapToHear': '🔊 trykk for å høre',
 };
 
