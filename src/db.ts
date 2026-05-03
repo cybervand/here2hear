@@ -67,18 +67,60 @@ function randomId(): string {
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+/**
+ * Opens (and migrates) the local IndexedDB.
+ *
+ * Schema-versioning rules of the road:
+ *
+ * - Adding optional fields to a SoundEntry does NOT need a version bump.
+ *   IndexedDB stores arbitrary objects with no schema enforcement, so
+ *   old records simply lack the new field.
+ * - Adding an index, adding/renaming an object store, or otherwise
+ *   changing structure DOES need a version bump. Increment DB_VERSION
+ *   and add a new `if (oldVersion < N)` branch below — never remove or
+ *   reorder existing branches.
+ */
 function openDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
+
+    req.onupgradeneeded = (event) => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
+      const oldVersion = event.oldVersion;
+      if (oldVersion < 1) {
         db.createObjectStore(STORE, { keyPath: 'id' });
       }
+      // Future:
+      // if (oldVersion < 2) {
+      //   const store = req.transaction!.objectStore(STORE);
+      //   store.createIndex('byLoudness', 'loudness');
+      // }
     };
+
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+
+    req.onerror = () => {
+      const err = req.error;
+      if (err?.name === 'VersionError') {
+        reject(
+          new Error(
+            'Your saved library was made by a newer version of the app. Please update the app to use it.',
+          ),
+        );
+      } else {
+        reject(err ?? new Error('Failed to open the local database.'));
+      }
+    };
+
+    // Another tab still has the DB open at the previous version.
+    req.onblocked = () => {
+      reject(
+        new Error(
+          'Another tab is keeping the library open. Close other copies of the app and reload.',
+        ),
+      );
+    };
   });
   return dbPromise;
 }
